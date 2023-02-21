@@ -226,8 +226,8 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._W = None
-        self._b = None
+        self._W = xavier_init((n_in, n_out)) # Initializing weight with Xavier
+        self._b = np.zeros((1,n_out)) # Initializing bias to a row vector of zeros
 
         self._cache_current = None
         self._grad_W_current = None
@@ -253,7 +253,14 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+
+        # Store x as it is needed for dLoss/dW
+        self._cache_current = x 
+
+        # Batch x values such that we have a row per observation so x has shape (num observation, num neurons in previous layer)
+        # W has shape (num neurons in previous layer, num neurons in curr layer)
+        # to line up these values for matrix multiplication, we need to have 
+        return np.matmul(x, self._W) + self._b
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -276,8 +283,13 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        
+        # dLoss/dW
+        self._grad_W_current = np.matmul(self._cache_current.T, grad_z)
+        # dLoss/db
+        self._grad_b_current = np.matmul(np.ones((len(grad_z),1)).T, grad_z)
 
+        return np.matmul(grad_z, self._W.T)
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -293,8 +305,8 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
-
+        self._W -= learning_rate*(self._grad_W_current)
+        self._b -= learning_rate*(self._grad_b_current)
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
