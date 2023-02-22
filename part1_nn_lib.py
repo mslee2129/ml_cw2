@@ -333,8 +333,8 @@ class MultiLayerNetwork(object):
         Arguments:
             - input_dim {int} -- Number of features in the input (excluding 
                 the batch dimension).
-            - neurons {list} -- Number of neurons in each linear layer 
-                represented as a list. The length of the list determines the 
+             - neurons {list} -- Number of neurons in each linear layer 
+                represented as a list. The length of the list determines the 
                 number of linear layers.
             - activations {list} -- List of the activation functions to apply 
                 to the output of each linear layer.
@@ -346,7 +346,27 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._layers = None
+        self._layers = []
+        
+        for i in range(len(neurons)):
+            layer = None
+            if(i == 0):
+                # First layer is created differently with input_dim
+                self._layers.append(LinearLayer(input_dim, neurons[i]))
+            
+            else:
+                # All other linear layers are created with num_neurons from previous and next
+                layer = LinearLayer(neurons[i-1], neurons[i])
+                self._layers.append(layer)
+
+            
+            # Create the activation layers to apply to the output of each linear layer
+            if(activations[i] == "relu"):
+                self._layers.append(ReluLayer(layer))
+
+            else:
+                self._layers.append(SigmoidLayer(layer))
+
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -365,7 +385,12 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        return np.zeros((1, self.neurons[-1])) # Replace with your own code
+        # Loop through your layers, to go from first to last
+        # Call the forward attribute of each, by giving the result of the previous layer into the next one
+        for layer in self._layers:
+            x = layer.forward(x)
+        
+        return x # Replace with your own code
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -389,7 +414,10 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        for layer in reversed(self._layers):
+            grad_z = layer.backward(grad_z)
+        
+        return grad_z # Replace with your own code
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -406,7 +434,9 @@ class MultiLayerNetwork(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        for layer in self._layers:
+            if isinstance(layer, LinearLayer):
+                layer.update_params(learning_rate)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -467,7 +497,8 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._loss_layer = None
+        self._loss_layer = MSELossLayer() if self.loss_fun == "mse" else CrossEntropyLossLayer()
+
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -490,7 +521,9 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        assert len(input_dataset) == len(target_dataset)
+        p = np.random.permutation(len(input_dataset))
+        return input_dataset[p], target_dataset[p]
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -519,7 +552,27 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        
+        # Calcultating the number of minibatches we will be running
+        num_minibatch = np.ceil(np.shape(input_dataset)[0] / self.batch_size)
+        
+        for epoch in range(self.nb_epoch):
+            if(self.shuffle_flag): # Shuffle if shuffle_flag true
+                input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
+
+            # Create the minibatches
+            input_minibatches = np.array_split(input_dataset, num_minibatch)
+            target_minibatches = np.array_split(target_dataset, num_minibatch)
+
+            for input_minibatch, target_minibatch in zip(input_minibatches, target_minibatches):
+                # Forward Pass & Calculate Loss
+                loss = self.eval_loss(input_minibatch, target_minibatch)
+                print(loss)
+
+                # Backpropagation
+                grad_z = self._loss_layer.backward()
+                self.network.backward(grad_z)
+                self.network.update_params(self.learning_rate)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -542,7 +595,10 @@ class Trainer(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        # Forward Pass
+        output = self.network.forward(input_dataset)
+        loss = self._loss_layer.forward(output, target_dataset)
+        return loss
 
         #######################################################################
         #                       ** END OF YOUR CODE **
