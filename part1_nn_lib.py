@@ -104,7 +104,7 @@ class SigmoidLayer(Layer):
         """
         self._cache_current = None
 
-    def forward(self, x):
+    def forward(self, x): # x here is the output from a linear layer, so with Neural Network notation we think of this as Z which equals WX+B
         """ 
         Performs forward pass through the Sigmoid layer.
 
@@ -120,7 +120,8 @@ class SigmoidLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        self._cache_current = 1/(1 + np.exp(-x))
+        return self._cache_current
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -143,7 +144,9 @@ class SigmoidLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        # g(Z) = _cache_current where g is the sigmoid activation function
+        # dA/dZ = g'(Z) = g(Z)*(1-g(Z))
+        return grad_z * self._cache_current * (1 - self._cache_current)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -177,7 +180,8 @@ class ReluLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        self._cache_current = np.maximum(0, x)
+        return self._cache_current
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -200,7 +204,8 @@ class ReluLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        self._cache_current[self._cache_current > 0] = 1
+        return grad_z * self._cache_current
 
         #######################################################################
         #                       ** END OF YOUR CODE **
