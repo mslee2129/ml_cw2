@@ -1,6 +1,5 @@
-import numpy as np
 import pickle
-
+import numpy as np
 
 def xavier_init(size, gain = 1.0):
     """
@@ -362,10 +361,10 @@ class MultiLayerNetwork(object):
             
             # Create the activation layers to apply to the output of each linear layer
             if(activations[i] == "relu"):
-                self._layers.append(ReluLayer(layer))
+                self._layers.append(ReluLayer())
 
             else:
-                self._layers.append(SigmoidLayer(layer))
+                self._layers.append(SigmoidLayer())
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -567,7 +566,7 @@ class Trainer(object):
             for input_minibatch, target_minibatch in zip(input_minibatches, target_minibatches):
                 # Forward Pass & Calculate Loss
                 loss = self.eval_loss(input_minibatch, target_minibatch)
-                print(loss)
+                #print(loss)
 
                 # Backpropagation
                 grad_z = self._loss_layer.backward()
@@ -623,7 +622,15 @@ class Preprocessor(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        self.lowerBound = 0
+        self.upperBound = 1
+        self.dataMax = []
+        self.dataMin = []
+
+        #getting the maximum and minimum value for each column
+        for col_index in range(np.shape(data)[1]):
+            self.dataMax.append(data[:,col_index].max()) 
+            self.dataMin.append(data[:,col_index].min())
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -642,8 +649,12 @@ class Preprocessor(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
 
+        # normalise column by column
+        for col_index in range(np.shape(data)[1]):
+            data[:,col_index] = self.lowerBound + ((data[:,col_index] - self.dataMin[col_index]) * (self.upperBound - self.lowerBound)) / (self.dataMax[col_index] - self.dataMin[col_index])
+
+        return data
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -661,7 +672,11 @@ class Preprocessor(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        pass
+        # normalise column by column
+        for col_index in range(np.shape(data)[1]):
+            data[:,col_index] = self.dataMin[col_index] + ((data[:,col_index] - self.lowerBound) * (self.dataMax[col_index] - self.dataMin[col_index])) / (self.upperBound - self.lowerBound)
+
+        return data
 
         #######################################################################
         #                       ** END OF YOUR CODE **
