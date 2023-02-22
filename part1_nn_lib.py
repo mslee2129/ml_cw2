@@ -289,6 +289,7 @@ class LinearLayer(Layer):
         # dLoss/db
         self._grad_b_current = np.matmul(np.ones((len(grad_z),1)).T, grad_z)
 
+        # pass back dLoss/dX = dLoss/dZ * Wt as the input to this current layer, X, is the output of the previous layer, Z
         return np.matmul(grad_z, self._W.T)
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -305,8 +306,10 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+
         self._W -= learning_rate*(self._grad_W_current)
         self._b -= learning_rate*(self._grad_b_current)
+
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
