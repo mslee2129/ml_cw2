@@ -2,6 +2,7 @@ import torch
 import pickle
 import numpy as np
 import pandas as pd
+from sklearn import preprocessing
 
 class Regressor():
 
@@ -28,6 +29,7 @@ class Regressor():
         self.input_size = X.shape[1]
         self.output_size = 1
         self.nb_epoch = nb_epoch 
+
         return
 
         #######################################################################
@@ -59,7 +61,66 @@ class Regressor():
 
         # Replace this code with your own
         # Return preprocessed x and y, return None for y if it was None
-        return x, (y if isinstance(y, pd.DataFrame) else None)
+        # return x, (y if isinstance(y, pd.DataFrame) else None)
+    
+        if training == True:
+            # fill empty values with 0
+            x.fillna(0)
+
+            # perform one-hot encoding on ocean_proximity
+            # categories are: ['INLAND' '<1H OCEAN' 'NEAR BAY' 'NEAR OCEAN' 'ISLAND']
+            lb = preprocessing.LabelBinarizer()
+            lb.fit(x.ocean_proximity)
+            #print(lb.classes_)
+            # store 1-hot encoded data into binarised_ocean, to be appended to y
+            binarised_ocean = lb.transform(x['ocean_proximity'])
+            print(binarised_ocean)
+            # x['ocean_proximity'] = pd.DataFrame([binarised_ocean])
+            
+            for i in range(len(x)):
+                x['ocean_proximity'][i] = binarised_ocean[i]
+            #print(x['ocean_proximity'])
+            
+            #print(lb)
+            # print(x.columns)
+                    
+            # perform constant normalisation on median_income and median_house_value
+            min_max_scaler = preprocessing.MinMaxScaler()
+
+            np_longitude = np.array(x['longitude']).reshape(-1, 1)
+            x['longitude'] = pd.DataFrame(min_max_scaler.fit_transform(np_longitude))
+            # print(x['median_income'])
+
+            np_latitude = np.array(x['latitude']).reshape(-1, 1)
+            x['latitude'] = pd.DataFrame(min_max_scaler.fit_transform(np_latitude))
+            # print(x['median_income'])
+            
+            np_income = np.array(x['median_income']).reshape(-1, 1)
+            x['median_income'] = pd.DataFrame(min_max_scaler.fit_transform(np_income))
+            # print(x['median_income'])
+
+            np_age = np.array(x['housing_median_age']).reshape(-1, 1)
+            x['housing_median_age'] = pd.DataFrame(min_max_scaler.fit_transform(np_age))
+            #print(age_scaled)
+
+            np_rooms = np.array(x['total_rooms']).reshape(-1, 1)
+            x['total_rooms'] = pd.DataFrame(min_max_scaler.fit_transform(np_rooms))
+            #print(rooms_scaled)
+
+            np_bedrooms = np.array(x['total_bedrooms']).reshape(-1, 1)
+            x['total_bedrooms'] = pd.DataFrame(min_max_scaler.fit_transform(np_bedrooms))
+            #print(bedrooms_scaled)
+
+            np_population = np.array(x['population']).reshape(-1, 1)
+            x['population'] = pd.DataFrame(min_max_scaler.fit_transform(np_population))
+            #print(population_scaled)
+
+            np_households = np.array(x['households']).reshape(-1, 1)
+            x['households'] = pd.DataFrame(min_max_scaler.fit_transform(np_households))
+            print(x)
+            return (x, y)
+        return (x, None)
+        
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -199,6 +260,8 @@ def example_main():
     # But remember that LabTS tests take Pandas DataFrame as inputs
     data = pd.read_csv("housing.csv") 
 
+    
+
     # Splitting input and output
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
@@ -208,12 +271,12 @@ def example_main():
     # You probably want to separate some held-out data 
     # to make sure the model isn't overfitting
     regressor = Regressor(x_train, nb_epoch = 10)
-    regressor.fit(x_train, y_train)
-    save_regressor(regressor)
+    # regressor.fit(x_train, y_train)
+    # save_regressor(regressor)
 
-    # Error
-    error = regressor.score(x_train, y_train)
-    print("\nRegressor error: {}\n".format(error))
+    # # Error
+    # error = regressor.score(x_train, y_train)
+    # print("\nRegressor error: {}\n".format(error))
 
 
 if __name__ == "__main__":
