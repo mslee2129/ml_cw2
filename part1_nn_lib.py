@@ -389,7 +389,7 @@ class MultiLayerNetwork(object):
         for layer in self._layers:
             x = layer.forward(x)
         
-        return x # Replace with your own code
+        return x
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -416,7 +416,7 @@ class MultiLayerNetwork(object):
         for layer in reversed(self._layers):
             grad_z = layer.backward(grad_z)
         
-        return grad_z # Replace with your own code
+        return grad_z
 
         #######################################################################
         #                       ** END OF YOUR CODE **
