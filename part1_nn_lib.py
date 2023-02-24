@@ -577,11 +577,13 @@ class Trainer(object):
         # Calcultating the number of minibatches we will be running
         num_minibatch = np.ceil(np.shape(input_dataset)[0] / self.batch_size)
         
-        if(self.shuffle_flag): # Shuffle if shuffle_flag true
-            input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
-            
-        for epoch in range(self.nb_epoch):
+        
 
+        for epoch in range(self.nb_epoch):
+            
+            if(self.shuffle_flag): # Shuffle if shuffle_flag true
+                input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
+                
             # Create the minibatches
             input_minibatches = np.array_split(input_dataset, num_minibatch)
             target_minibatches = np.array_split(target_dataset, num_minibatch)

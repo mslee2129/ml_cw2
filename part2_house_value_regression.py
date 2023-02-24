@@ -109,8 +109,6 @@ class Regressor():
         for col in columns:
             np_x = np.array(x[col]).reshape(-1, 1)
             x[col] = pd.DataFrame(min_max_scaler.fit_transform(np_x))
-
-        print(x)
         x = torch.tensor(x.values)
         return (x, y)
 
@@ -137,17 +135,16 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        X, Y = self._preprocessor(x, y = y, training = True) # Do not forget
+        X, Y = self._preprocessor(x, y, training = True)
         
         # Calcultating the number of minibatches we will be running
         num_minibatch = np.ceil(np.shape(input_dataset)[0] / self.batch_size)
         
-        # Shuffling the data once, before getting subminibatches
-        if(self.shuffle_flag): # Shuffle if shuffle_flag true
-            input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
-
-        for epoch in range(self.nb_epoch):
         
+        for epoch in range(self.nb_epoch):
+            if(self.shuffle_flag): # Shuffle if shuffle_flag true
+                input_dataset, target_dataset = self.shuffle(x, y)
+
             # Create the minibatches
             input_minibatches = np.array_split(input_dataset, num_minibatch)
             target_minibatches = np.array_split(target_dataset, num_minibatch)
@@ -155,18 +152,11 @@ class Regressor():
             for input_minibatch, target_minibatch in zip(input_minibatches, target_minibatches):
                 # Forward Pass & Calculate Loss
                 loss = self.eval_loss(input_minibatch, target_minibatch)
-                #print(loss)
 
                 # Backpropagation
                 grad_z = self._loss_layer.backward()
                 self.network.backward(grad_z)
                 self.network.update_params(self.learning_rate)
-
-        
-
-
-
-
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -217,6 +207,32 @@ class Regressor():
 
         X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
         return 0 # Replace this code with your own
+
+        #######################################################################
+        #                       ** END OF YOUR CODE **
+        #######################################################################
+    
+    @staticmethod
+    def shuffle(input_dataset, target_dataset):
+        """
+        Returns shuffled versions of the inputs.
+
+        Arguments:
+            - input_dataset {np.ndarray} -- Array of input features, of shape
+                (#_data_points, n_features) or (#_data_points,).
+            - target_dataset {np.ndarray} -- Array of corresponding targets, of
+                shape (#_data_points, #output_neurons).
+
+        Returns: 
+            - {np.ndarray} -- shuffled inputs.
+            - {np.ndarray} -- shuffled_targets.
+        """
+        #######################################################################
+        #                       ** START OF YOUR CODE **
+        #######################################################################
+        assert len(input_dataset) == len(target_dataset)
+        p = np.random.permutation(len(input_dataset))
+        return input_dataset[p], target_dataset[p]
 
         #######################################################################
         #                       ** END OF YOUR CODE **
