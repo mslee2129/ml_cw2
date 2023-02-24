@@ -1,4 +1,6 @@
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import pickle
 import numpy as np
 import pandas as pd
@@ -24,13 +26,14 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        # Replace this code with your own
-        X, _ = self._preprocessor(x, training = True)
-        self.input_size = X.shape[1]
+        # Setting up necessary attributes
+        self.x, _ = self._preprocessor(x, training = True)
+        self.input_size = self.x.shape[1]
         self.output_size = 1
         self.nb_epoch = nb_epoch 
 
-        return
+        # Initialize Neural Network
+        self.network = Net()
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -59,68 +62,50 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        # Replace this code with your own
         # Return preprocessed x and y, return None for y if it was None
-        # return x, (y if isinstance(y, pd.DataFrame) else None)
-    
-        if training == True:
-            # fill empty values with 0
-            x.fillna(0)
-
-            # perform one-hot encoding on ocean_proximity
-            # categories are: ['INLAND' '<1H OCEAN' 'NEAR BAY' 'NEAR OCEAN' 'ISLAND']
-            lb = preprocessing.LabelBinarizer()
-            lb.fit(x.ocean_proximity)
-            #print(lb.classes_)
-            # store 1-hot encoded data into binarised_ocean, to be appended to y
-            binarised_ocean = lb.transform(x['ocean_proximity'])
-            print(binarised_ocean)
-            # x['ocean_proximity'] = pd.DataFrame([binarised_ocean])
-            
-            for i in range(len(x)):
-                x['ocean_proximity'][i] = binarised_ocean[i]
-            #print(x['ocean_proximity'])
-            
-            #print(lb)
-            # print(x.columns)
-                    
-            # perform constant normalisation on median_income and median_house_value
+        if y != None: # Preprocess y if it is not None
+            # normalise y
             min_max_scaler = preprocessing.MinMaxScaler()
-
-            np_longitude = np.array(x['longitude']).reshape(-1, 1)
-            x['longitude'] = pd.DataFrame(min_max_scaler.fit_transform(np_longitude))
-            # print(x['median_income'])
-
-            np_latitude = np.array(x['latitude']).reshape(-1, 1)
-            x['latitude'] = pd.DataFrame(min_max_scaler.fit_transform(np_latitude))
-            # print(x['median_income'])
+            np_y = np.array(y).reshape(-1, 1)
+            y = pd.DataFrame(min_max_scaler.fit_transform(np_y))
+            # conver to torch tensor
+            y = torch.tensor(y.values)
             
-            np_income = np.array(x['median_income']).reshape(-1, 1)
-            x['median_income'] = pd.DataFrame(min_max_scaler.fit_transform(np_income))
-            # print(x['median_income'])
+        # If training is false, return the preprocessed dataset
+        if training == False:
+            return self.x, y #return y whether it is None or not
 
-            np_age = np.array(x['housing_median_age']).reshape(-1, 1)
-            x['housing_median_age'] = pd.DataFrame(min_max_scaler.fit_transform(np_age))
-            #print(age_scaled)
+        #################################
+        # TRAINING IS TRUE FOR THE BELOW:
+        #################################
+        # fill empty values with 0
+        x.fillna(0)
 
-            np_rooms = np.array(x['total_rooms']).reshape(-1, 1)
-            x['total_rooms'] = pd.DataFrame(min_max_scaler.fit_transform(np_rooms))
-            #print(rooms_scaled)
-
-            np_bedrooms = np.array(x['total_bedrooms']).reshape(-1, 1)
-            x['total_bedrooms'] = pd.DataFrame(min_max_scaler.fit_transform(np_bedrooms))
-            #print(bedrooms_scaled)
-
-            np_population = np.array(x['population']).reshape(-1, 1)
-            x['population'] = pd.DataFrame(min_max_scaler.fit_transform(np_population))
-            #print(population_scaled)
-
-            np_households = np.array(x['households']).reshape(-1, 1)
-            x['households'] = pd.DataFrame(min_max_scaler.fit_transform(np_households))
-            print(x)
-            return (x, y)
-        return (x, None)
+        # perform one-hot encoding on ocean_proximity
+        # categories are: ['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']
+        lb = preprocessing.LabelBinarizer()
+        lb.fit(x.ocean_proximity)
+        # store 1-hot encoded data into binarised_ocean
+        binarised_ocean_proximity = lb.transform(x['ocean_proximity'])
+        # print(binarised_ocean_proximity)
+        # x['ocean_proximity'] = pd.DataFrame([binarised_ocean])
         
+        for i in range(len(x)):
+            x['ocean_proximity'][i] = binarised_ocean_proximity[i]
+        
+        # perform constant normalisation on columns
+        columns = ['longitude', 'latitude', 'median_income', 'housing_median_age',
+                    'total_rooms', 'total_bedrooms', 'population', 'households']
+
+        min_max_scaler = preprocessing.MinMaxScaler()
+
+        for col in columns:
+            np_x = np.array(x[col]).reshape(-1, 1)
+            x[col] = pd.DataFrame(min_max_scaler.fit_transform(np_x))
+
+        print(x)
+        x = torch.tensor(x.values)
+        return (x, y)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -249,6 +234,20 @@ def RegressorHyperParameterSearch():
     #                       ** END OF YOUR CODE **
     #######################################################################
 
+
+
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        #create the layers we want to use
+
+    def forward(self, x):
+        #create the flow (passes through the layers)
+        return x
+
+    def backward(self, grad_z):
+        #create the flow (passes through the layers)
+        return grad_z
 
 
 def example_main():
