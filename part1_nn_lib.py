@@ -210,6 +210,27 @@ class ReluLayer(Layer):
         #                       ** END OF YOUR CODE **
         #######################################################################
 
+class IdentityLayer(Layer):
+    """
+    IdentityLayer: Passes input onwards unchanged.
+    """
+
+    def __init__(self):
+        """
+        Constructor of the identity layer.
+
+        Arguments:
+            - No arguments taken
+        """
+        self._cache_current = None
+        
+    def forward(self, x):
+        self._cache_current = x
+        return x
+
+    def backward(self, grad_z):
+        return grad_z
+
 
 class LinearLayer(Layer):
     """
@@ -348,23 +369,24 @@ class MultiLayerNetwork(object):
         self._layers = []
         
         for i in range(len(neurons)):
-            layer = None
             if(i == 0):
                 # First layer is created differently with input_dim
                 self._layers.append(LinearLayer(input_dim, neurons[i]))
             
             else:
                 # All other linear layers are created with num_neurons from previous and next
-                layer = LinearLayer(neurons[i-1], neurons[i])
-                self._layers.append(layer)
+                self._layers.append(LinearLayer(neurons[i-1], neurons[i]))
 
             
             # Create the activation layers to apply to the output of each linear layer
-            if(activations[i] == "relu"):
+            if activations[i] == "relu":
                 self._layers.append(ReluLayer())
 
-            else:
+            elif activations[i] == "sigmoid":
                 self._layers.append(SigmoidLayer())
+
+            else:
+                self._layers.append(IdentityLayer())
 
         #######################################################################
         #                       ** END OF YOUR CODE **
