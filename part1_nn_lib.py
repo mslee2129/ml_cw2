@@ -179,7 +179,16 @@ class ReluLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        self._cache_current = np.maximum(0, x)
+        # print("AAAAAAAA", x, flush = True)
+        # print(x[:, np.vectorize(np.issubdtype)(x.dtype, np.integer)])
+        # self._cache_current = np.maximum(0, x[:, np.vectorize(np.issubdtype)(x.dtype, np.integer)])
+        # np.maximum(0, np.where(x.dtype = int))
+
+        # if np.issubdtype(x.dtype, np.integer):
+        #     x = x.astype(float)
+        # self.mask = np.greater(x, 0)
+        # self._cache_current = np.greater(x, 0)
+        # np.multiply(x, self._cache_current)
         return self._cache_current
 
         #######################################################################
@@ -285,6 +294,9 @@ class LinearLayer(Layer):
         # Batch x values such that we have a row per observation so x has shape (num observation, num neurons in previous layer)
         # W has shape (num neurons in previous layer, num neurons in curr layer)
         # to line up these values for matrix multiplication, we need to have 
+
+
+        print("I AM LORD LINEAR \n HEAR YE HEAR YE \n", np.matmul(x, self._W) + self._b)
         return np.matmul(x, self._W) + self._b
 
         #######################################################################
@@ -409,6 +421,7 @@ class MultiLayerNetwork(object):
         # Loop through your layers, to go from first to last
         # Call the forward attribute of each, by giving the result of the previous layer into the next one
         for layer in self._layers:
+            print("RUN NUMBER SOMETHING GIVES \n", x)
             x = layer.forward(x)
         
         return x
@@ -576,9 +589,7 @@ class Trainer(object):
         
         # Calcultating the number of minibatches we will be running
         num_minibatch = np.ceil(np.shape(input_dataset)[0] / self.batch_size)
-        
-        
-
+    
         for epoch in range(self.nb_epoch):
             
             if(self.shuffle_flag): # Shuffle if shuffle_flag true
@@ -620,6 +631,7 @@ class Trainer(object):
         #                       ** START OF YOUR CODE **
         #######################################################################
         # Forward Pass
+        # print("Input in eval: ", input_dataset)
         output = self.network.forward(input_dataset)
         loss = self._loss_layer.forward(output, target_dataset)
         return loss

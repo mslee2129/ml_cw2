@@ -2,6 +2,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
+import copy
 import part1_nn_lib as nn
 
 
@@ -31,7 +32,8 @@ class Regressor():
         #######################################################################
 
         # Setting up necessary attributes
-        self.x, _ = self._preprocessor(x, training = True)
+        self.x = copy.deepcopy(x)
+        self.x, _ = self._preprocessor(self.x, training = True)
         self.input_size = self.x.shape[1]
         self.output_size = 1
         self.nb_epoch = nb_epoch 
@@ -82,7 +84,7 @@ class Regressor():
         #######################################################################
 
         # Return preprocessed x and y, return None for y if it was None
-        if y != None: # Preprocess y if it is not None
+        if y is not None: # Preprocess y if it is not None
             # normalise y
             min_max_scaler = preprocessing.MinMaxScaler()
             np_y = np.array(y).reshape(-1, 1)
@@ -107,7 +109,6 @@ class Regressor():
         # store 1-hot encoded data into binarised_ocean
         binarised_ocean_proximity = lb.transform(x['ocean_proximity'])
         # print(binarised_ocean_proximity)
-        # x['ocean_proximity'] = pd.DataFrame([binarised_ocean])
         
         for i in range(len(x)):
             x['ocean_proximity'][i] = binarised_ocean_proximity[i]
@@ -146,9 +147,12 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
-        X, Y = self._preprocessor(x, y, training = True)
-        self.network.train(self, X, Y)
+        X = copy.deepcopy(x)
+        Y = copy.deepcopy(y)
+        X, Y = self._preprocessor(X, Y, training = True)
+        print("X PRE PREDICT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", X)
+       
+        self.network.train(X, Y)
 
         return self
         
@@ -208,33 +212,6 @@ class Regressor():
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
-    
-    @staticmethod
-    def shuffle(input_dataset, target_dataset):
-        """
-        Returns shuffled versions of the inputs.
-
-        Arguments:
-            - input_dataset {np.ndarray} -- Array of input features, of shape
-                (#_data_points, n_features) or (#_data_points,).
-            - target_dataset {np.ndarray} -- Array of corresponding targets, of
-                shape (#_data_points, #output_neurons).
-
-        Returns: 
-            - {np.ndarray} -- shuffled inputs.
-            - {np.ndarray} -- shuffled_targets.
-        """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        assert len(input_dataset) == len(target_dataset)
-        p = np.random.permutation(len(input_dataset))
-        return input_dataset[p], target_dataset[p]
-
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
-
 
 def save_regressor(trained_model): 
     """ 
@@ -295,14 +272,19 @@ def example_main():
     # Splitting input and output
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
+    
 
     # Training
     # This example trains on the whole available dataset. 
     # You probably want to separate some held-out data 
     # to make sure the model isn't overfitting
     regressor = Regressor(x_train, nb_epoch = 10)
+    # print(x_train)
+    # print(x_train.shape)
+    # print(regressor.x)
+    # print(regressor.x.shape)
     regressor.fit(x_train, y_train)
-    save_regressor(regressor)
+    #save_regressor(regressor)
 
     # # Error
     # error = regressor.score(x_train, y_train)
