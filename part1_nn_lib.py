@@ -583,7 +583,7 @@ class Trainer(object):
             
             if(self.shuffle_flag): # Shuffle if shuffle_flag true
                 input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
-                
+
             # Create the minibatches
             input_minibatches = np.array_split(input_dataset, num_minibatch)
             target_minibatches = np.array_split(target_dataset, num_minibatch)

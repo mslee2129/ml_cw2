@@ -1,14 +1,13 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import pickle
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
+import part1_nn_lib as nn
+
 
 class Regressor():
 
-    def __init__(self, x, nb_epoch = 1000, neurons = [10,10], activations=["relu", "identity"]):
+    def __init__(self, x, nb_epoch = 1000, neurons = [10,10], activations=["relu", "identity"], batch_size = 8, learning_rate=0.01, shuffle_flag=True):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -38,9 +37,22 @@ class Regressor():
         self.nb_epoch = nb_epoch 
         self.neurons = neurons
         self.activations = activations
-
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.shuffle_flag= shuffle_flag
+        
         # Initialize Neural Network
-        self.network = Net(self.input_size, self.output_size, self.neurons, self.activations)
+        net = nn.MultiLayerNetwork(self.input_size, self.neurons, self.activations)
+
+        # Initialize Trainer
+        self.network = nn.Trainer(
+            network=net,
+            batch_size=self.batch_size,
+            nb_epoch=self.nb_epoch,
+            learning_rate=self.learning_rate,
+            loss_fun="cross_entropy",
+            shuffle_flag=True,
+        )
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -76,7 +88,7 @@ class Regressor():
             np_y = np.array(y).reshape(-1, 1)
             y = pd.DataFrame(min_max_scaler.fit_transform(np_y))
             # conver to torch tensor
-            y = torch.tensor(y.values)
+            y = np.array(y)
             
         # If training is false, return the preprocessed dataset
         if training == False:
@@ -109,7 +121,7 @@ class Regressor():
         for col in columns:
             np_x = np.array(x[col]).reshape(-1, 1)
             x[col] = pd.DataFrame(min_max_scaler.fit_transform(np_x))
-        x = torch.tensor(x.values)
+        x = np.array(x)
         return (x, y)
 
         #######################################################################
@@ -136,27 +148,10 @@ class Regressor():
         #######################################################################
 
         X, Y = self._preprocessor(x, y, training = True)
-        
-        # Calcultating the number of minibatches we will be running
-        num_minibatch = np.ceil(np.shape(input_dataset)[0] / self.batch_size)
-        
-        
-        for epoch in range(self.nb_epoch):
-            if(self.shuffle_flag): # Shuffle if shuffle_flag true
-                input_dataset, target_dataset = self.shuffle(x, y)
+        self.network.train(self, X, Y)
 
-            # Create the minibatches
-            input_minibatches = np.array_split(input_dataset, num_minibatch)
-            target_minibatches = np.array_split(target_dataset, num_minibatch)
-
-            for input_minibatch, target_minibatch in zip(input_minibatches, target_minibatches):
-                # Forward Pass & Calculate Loss
-                loss = self.eval_loss(input_minibatch, target_minibatch)
-
-                # Backpropagation
-                grad_z = self._loss_layer.backward()
-                self.network.backward(grad_z)
-                self.network.update_params(self.learning_rate)
+        return self
+        
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -181,6 +176,8 @@ class Regressor():
         #######################################################################
 
         X, _ = self._preprocessor(x, training = False) # Do not forget
+
+        
         pass
 
         #######################################################################
@@ -284,50 +281,6 @@ def RegressorHyperParameterSearch():
     #######################################################################
     #                       ** END OF YOUR CODE **
     #######################################################################
-
-
-
-class Net(nn.Module):
-    def __init__(self, input_size, neurons, activations):
-        super(Net, self).__init__()
-
-        self._layers = []
-        
-        for i in range(len(neurons)):
-            layer = None
-            if(i == 0):
-                # First layer is created differently with input_dim
-                self._layers.append(nn.Linear(input_size, neurons[i]))
-            
-            else:
-                # All other linear layers are created with num_neurons from previous and next
-                layer = nn.Linear(neurons[i-1], neurons[i])
-                self._layers.append(layer)
-
-            
-            # Create the activation layers to apply to the output of each linear layer
-            if activations[i] == "relu":
-                self._layers.append(nn.ReLU())
-
-            elif activations[i] == "sigmoid":
-                self._layers.append(nn.Sigmoid())
-
-            else:
-                self._layers.append(nn.Identity())
-
-
-
-    def forward(self, x):
-        for layer in self._layers:
-            x = layer.forward(x)
-        
-        return x
-
-    def backward(self, grad_z):
-        for layer in reversed(self._layers):
-            grad_z = layer.backward(grad_z)
-        
-        return grad_z
 
 
 def example_main():
