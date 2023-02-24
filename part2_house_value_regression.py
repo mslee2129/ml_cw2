@@ -139,7 +139,34 @@ class Regressor():
 
         X, Y = self._preprocessor(x, y = y, training = True) # Do not forget
         
-        return self
+        # Calcultating the number of minibatches we will be running
+        num_minibatch = np.ceil(np.shape(input_dataset)[0] / self.batch_size)
+        
+        # Shuffling the data once, before getting subminibatches
+        if(self.shuffle_flag): # Shuffle if shuffle_flag true
+            input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
+
+        for epoch in range(self.nb_epoch):
+        
+            # Create the minibatches
+            input_minibatches = np.array_split(input_dataset, num_minibatch)
+            target_minibatches = np.array_split(target_dataset, num_minibatch)
+
+            for input_minibatch, target_minibatch in zip(input_minibatches, target_minibatches):
+                # Forward Pass & Calculate Loss
+                loss = self.eval_loss(input_minibatch, target_minibatch)
+                #print(loss)
+
+                # Backpropagation
+                grad_z = self._loss_layer.backward()
+                self.network.backward(grad_z)
+                self.network.update_params(self.learning_rate)
+
+        
+
+
+
+
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -281,7 +308,9 @@ class Net(nn.Module):
         return x
 
     def backward(self, grad_z):
-        #create the flow (passes through the layers)
+        for layer in reversed(self._layers):
+            grad_z = layer.backward(grad_z)
+        
         return grad_z
 
 
