@@ -8,7 +8,7 @@ from sklearn import preprocessing
 
 class Regressor():
 
-    def __init__(self, x, nb_epoch = 1000):
+    def __init__(self, x, nb_epoch = 1000, neurons = [10,10], activations=["relu", "identity"]):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -19,6 +19,11 @@ class Regressor():
                 (batch_size, input_size), used to compute the size 
                 of the network.
             - nb_epoch {int} -- number of epochs to train the network.
+            - neurons {list} -- Number of neurons in each linear layer 
+                represented as a list. The length of the list determines the 
+                number of linear layers.
+            - activations {list} -- List of the activation functions to apply 
+                to the output of each linear layer.
 
         """
 
@@ -31,9 +36,11 @@ class Regressor():
         self.input_size = self.x.shape[1]
         self.output_size = 1
         self.nb_epoch = nb_epoch 
+        self.neurons = neurons
+        self.activations = activations
 
         # Initialize Neural Network
-        self.network = Net()
+        self.network = Net(self.input_size, self.output_size, self.neurons, self.activations)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -131,6 +138,7 @@ class Regressor():
         #######################################################################
 
         X, Y = self._preprocessor(x, y = y, training = True) # Do not forget
+        
         return self
 
         #######################################################################
@@ -237,12 +245,39 @@ def RegressorHyperParameterSearch():
 
 
 class Net(nn.Module):
-    def __init__(self):
+    def __init__(self, input_size, neurons, activations):
         super(Net, self).__init__()
-        #create the layers we want to use
+
+        self._layers = []
+        
+        for i in range(len(neurons)):
+            layer = None
+            if(i == 0):
+                # First layer is created differently with input_dim
+                self._layers.append(nn.Linear(input_size, neurons[i]))
+            
+            else:
+                # All other linear layers are created with num_neurons from previous and next
+                layer = nn.Linear(neurons[i-1], neurons[i])
+                self._layers.append(layer)
+
+            
+            # Create the activation layers to apply to the output of each linear layer
+            if activations[i] == "relu":
+                self._layers.append(nn.ReLU())
+
+            elif activations[i] == "sigmoid":
+                self._layers.append(nn.Sigmoid())
+
+            else:
+                self._layers.append(nn.Identity())
+
+
 
     def forward(self, x):
-        #create the flow (passes through the layers)
+        for layer in self._layers:
+            x = layer.forward(x)
+        
         return x
 
     def backward(self, grad_z):
@@ -259,8 +294,6 @@ def example_main():
     # But remember that LabTS tests take Pandas DataFrame as inputs
     data = pd.read_csv("housing.csv") 
 
-    
-
     # Splitting input and output
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
@@ -270,8 +303,8 @@ def example_main():
     # You probably want to separate some held-out data 
     # to make sure the model isn't overfitting
     regressor = Regressor(x_train, nb_epoch = 10)
-    # regressor.fit(x_train, y_train)
-    # save_regressor(regressor)
+    regressor.fit(x_train, y_train)
+    save_regressor(regressor)
 
     # # Error
     # error = regressor.score(x_train, y_train)
