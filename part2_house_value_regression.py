@@ -2,6 +2,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
+from sklearn.metrics import accuracy_score, precision_score, recall_score
 import part1_nn_lib as nn
 
 
@@ -92,7 +93,11 @@ class Regressor():
             
         # If training is false, return the preprocessed dataset
         if training == False:
-            return self.x, y #return y whether it is None or not
+            # Use the x_train normalising MIN-MAX VALUES (THAT WE NEED TO STORE)
+            # TO NORMALISE THE TESTING DATA
+            # RETURN THE NORMALIZED TESTING DATA
+            # DO THE SAME FOR Y_TRAIN AND Y_TEST IF NECESSARY
+            return 0
 
         #################################
         # TRAINING IS TRUE FOR THE BELOW:
@@ -191,11 +196,12 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
+        print(x.shape)
         X, _ = self._preprocessor(x, training = False)
-        preds = self.network.network(X).argmax(axis=1).squeeze()
+        print(X.shape)
+        self.preds = self.network.network(X).argmax(axis=1).squeeze()
         
-        return preds
+        return self.preds
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -218,8 +224,20 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        _, Y = self._preprocessor(x, y = y, training = False) 
+        accuracy = accuracy_score(self.preds, Y)
+        precision = precision_score(self.preds, Y, average='macro')
+        recall = recall_score(self.preds, Y, average='macro')
+        
 
-        X, Y = self._preprocessor(x, y = y, training = False) # Do not forget
+        print("\n|------------- MODEL PERFORMANCE -------------|\n")
+        print("|                   ACCURACY                    |\n")
+        print("|                 ",accuracy,"                  |\n")
+        print("|                   PRECISION                   |\n")
+        print("|                 ",precision,"                 |\n")
+        print("|                   RECALL                      |\n")
+        print("|                 ",recall,"                    |\n")
+        print("\n |------------- ----------------- -------------|\n")
         return 0 # Replace this code with your own
 
         #######################################################################
@@ -294,6 +312,8 @@ def example_main():
     x_test = x[split_idx:]
     y_test = y[split_idx:]
 
+    print(x_test.shape)
+    print(y_test.shape)
     # Training
     # This example trains on the whole available dataset. 
     # You probably want to separate some held-out data 
@@ -304,6 +324,7 @@ def example_main():
 
     reg = load_regressor()
     reg.predict(x_test)
+    reg.score(x_test, y_test)
 
     # # Error
     # error = regressor.score(x_train, y_train)
