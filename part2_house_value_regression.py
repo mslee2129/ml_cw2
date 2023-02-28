@@ -2,7 +2,6 @@ import pickle
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
-import copy
 import part1_nn_lib as nn
 
 
@@ -32,9 +31,8 @@ class Regressor():
         #######################################################################
 
         # Setting up necessary attributes
-        self.x = copy.deepcopy(x)
-        self.x, _ = self._preprocessor(self.x, training = True)
-        self.input_size = self.x.shape[1]
+        self.x, _ = self._preprocessor(x, training = True)
+        self.input_size = self.x.shape[1] + 4 # 5 dummy variable parameters to be added minus the original parameter
         self.output_size = 1
         self.nb_epoch = nb_epoch 
         self.neurons = neurons
@@ -84,7 +82,7 @@ class Regressor():
         #######################################################################
 
         # Return preprocessed x and y, return None for y if it was None
-        if y is not None: # Preprocess y if it is not None
+        if y != None: # Preprocess y if it is not None
             # normalise y
             min_max_scaler = preprocessing.MinMaxScaler()
             np_y = np.array(y).reshape(-1, 1)
@@ -108,14 +106,11 @@ class Regressor():
         lb.fit(x.ocean_proximity)
         # store 1-hot encoded data into binarised_ocean
         binarised_ocean_proximity = lb.transform(x['ocean_proximity'])
-        # print(binarised_ocean_proximity)
-        
-        for i in range(len(x)):
-            x['ocean_proximity'][i] = binarised_ocean_proximity[i]
-        
+        x = x.drop(labels='ocean_proximity', axis=1)
+        x = np.concatenate((x, binarised_ocean_proximity), axis=1) # add binary 'dummy variables' for one-hot encoding of categorical variable
         # perform constant normalisation on columns
         columns = ['longitude', 'latitude', 'median_income', 'housing_median_age',
-                    'total_rooms', 'total_bedrooms', 'population', 'households']
+                    'total_rooms', 'total_bedrooms', 'population', 'households', '<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']
 
         min_max_scaler = preprocessing.MinMaxScaler()
 
@@ -147,12 +142,9 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        X = copy.deepcopy(x)
-        Y = copy.deepcopy(y)
-        X, Y = self._preprocessor(X, Y, training = True)
-        print("X PRE PREDICT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", X)
-       
-        self.network.train(X, Y)
+
+        X, Y = self._preprocessor(x, y, training = True)
+        self.network.train(self, X, Y)
 
         return self
         
@@ -212,6 +204,33 @@ class Regressor():
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
+    
+    @staticmethod
+    def shuffle(input_dataset, target_dataset):
+        """
+        Returns shuffled versions of the inputs.
+
+        Arguments:
+            - input_dataset {np.ndarray} -- Array of input features, of shape
+                (#_data_points, n_features) or (#_data_points,).
+            - target_dataset {np.ndarray} -- Array of corresponding targets, of
+                shape (#_data_points, #output_neurons).
+
+        Returns: 
+            - {np.ndarray} -- shuffled inputs.
+            - {np.ndarray} -- shuffled_targets.
+        """
+        #######################################################################
+        #                       ** START OF YOUR CODE **
+        #######################################################################
+        assert len(input_dataset) == len(target_dataset)
+        p = np.random.permutation(len(input_dataset))
+        return input_dataset[p], target_dataset[p]
+
+        #######################################################################
+        #                       ** END OF YOUR CODE **
+        #######################################################################
+
 
 def save_regressor(trained_model): 
     """ 
@@ -272,19 +291,14 @@ def example_main():
     # Splitting input and output
     x_train = data.loc[:, data.columns != output_label]
     y_train = data.loc[:, [output_label]]
-    
 
     # Training
     # This example trains on the whole available dataset. 
     # You probably want to separate some held-out data 
     # to make sure the model isn't overfitting
     regressor = Regressor(x_train, nb_epoch = 10)
-    # print(x_train)
-    # print(x_train.shape)
-    # print(regressor.x)
-    # print(regressor.x.shape)
     regressor.fit(x_train, y_train)
-    #save_regressor(regressor)
+    save_regressor(regressor)
 
     # # Error
     # error = regressor.score(x_train, y_train)
@@ -293,4 +307,3 @@ def example_main():
 
 if __name__ == "__main__":
     example_main()
-
