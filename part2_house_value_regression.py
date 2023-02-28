@@ -7,7 +7,7 @@ import part1_nn_lib as nn
 
 class Regressor():
 
-    def __init__(self, x, nb_epoch = 1000, neurons = [10,10], activations=["relu", "identity"], batch_size = 8, learning_rate=0.01, shuffle_flag=True):
+    def __init__(self, x, nb_epoch = 5, neurons = [2,2], activations=["relu", "identity"], batch_size = 8000, learning_rate=0.01, shuffle_flag=True):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -97,15 +97,28 @@ class Regressor():
         #################################
         # TRAINING IS TRUE FOR THE BELOW:
         #################################
+        # checking if some empty values in ocean_proximity before doing one-hot encoding
+        # REPORT
+        # print(x.isna().sum()) 
+
         # fill empty values with 0
-        x.fillna(0)
+        x = x.fillna(0)
+
+
+        # print("\n==================================================\n")
+        # for (columnName, columnData) in x.iteritems():
+        #     print(columnName)
+        #     print(" has number of NA: ", columnData.isna().sum())
+        # print("\n==================================================\n")
+
+        
 
         # perform one-hot encoding on ocean_proximity
         # categories are: ['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']
         # lb = preprocessing.LabelBinarizer()
         # lb.fit(x.ocean_proximity)
         # store 1-hot encoded data into binarised_ocean
-        #binarised_ocean_proximity = pd.DataFrame(lb.transform(x['ocean_proximity']))
+        # binarised_ocean_proximity = pd.DataFrame(lb.transform(x['ocean_proximity']))
         
         #Using label_binarize because can order class labels
         binarised_ocean_proximity = pd.DataFrame(preprocessing.label_binarize(
@@ -117,18 +130,16 @@ class Regressor():
 
         # Removed below because we want to keep it a dataframe for now
         # x = np.concatenate((x, binarised_ocean_proximity), axis=1) # add binary 'dummy variables' for one-hot encoding of categorical variable
-        
-        
+                
         # perform constant normalisation on columns
-        print(x)
         columns = ['longitude', 'latitude', 'median_income', 'housing_median_age',
                     'total_rooms', 'total_bedrooms', 'population', 'households', '<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']
         min_max_scaler = preprocessing.MinMaxScaler()
 
         for col in columns:
-            # print(x[col])
             np_x = np.array(x[col]).reshape(-1, 1)
             x[col] = pd.DataFrame(min_max_scaler.fit_transform(np_x))
+        
         x = np.array(x)
         return (x, y)
 
@@ -214,33 +225,6 @@ class Regressor():
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
-    
-    @staticmethod
-    def shuffle(input_dataset, target_dataset):
-        """
-        Returns shuffled versions of the inputs.
-
-        Arguments:
-            - input_dataset {np.ndarray} -- Array of input features, of shape
-                (#_data_points, n_features) or (#_data_points,).
-            - target_dataset {np.ndarray} -- Array of corresponding targets, of
-                shape (#_data_points, #output_neurons).
-
-        Returns: 
-            - {np.ndarray} -- shuffled inputs.
-            - {np.ndarray} -- shuffled_targets.
-        """
-        #######################################################################
-        #                       ** START OF YOUR CODE **
-        #######################################################################
-        assert len(input_dataset) == len(target_dataset)
-        p = np.random.permutation(len(input_dataset))
-        return input_dataset[p], target_dataset[p]
-
-        #######################################################################
-        #                       ** END OF YOUR CODE **
-        #######################################################################
-
 
 def save_regressor(trained_model): 
     """ 
@@ -306,7 +290,7 @@ def example_main():
     # This example trains on the whole available dataset. 
     # You probably want to separate some held-out data 
     # to make sure the model isn't overfitting
-    regressor = Regressor(x_train, nb_epoch = 10)
+    regressor = Regressor(x_train, nb_epoch = 1)
     regressor.fit(x_train, y_train)
     save_regressor(regressor)
 
