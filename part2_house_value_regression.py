@@ -32,7 +32,7 @@ class Regressor():
 
         # Setting up necessary attributes
         self.x, _ = self._preprocessor(x, training = True)
-        self.input_size = self.x.shape[1] + 4 # 5 dummy variable parameters to be added minus the original parameter
+        self.input_size = self.x.shape[1]
         self.output_size = 1
         self.nb_epoch = nb_epoch 
         self.neurons = neurons
@@ -82,7 +82,7 @@ class Regressor():
         #######################################################################
 
         # Return preprocessed x and y, return None for y if it was None
-        if y != None: # Preprocess y if it is not None
+        if y is not None: # Preprocess y if it is not None
             # normalise y
             min_max_scaler = preprocessing.MinMaxScaler()
             np_y = np.array(y).reshape(-1, 1)
@@ -102,19 +102,31 @@ class Regressor():
 
         # perform one-hot encoding on ocean_proximity
         # categories are: ['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']
-        lb = preprocessing.LabelBinarizer()
-        lb.fit(x.ocean_proximity)
+        # lb = preprocessing.LabelBinarizer()
+        # lb.fit(x.ocean_proximity)
         # store 1-hot encoded data into binarised_ocean
-        binarised_ocean_proximity = lb.transform(x['ocean_proximity'])
-        x = x.drop(labels='ocean_proximity', axis=1)
-        x = np.concatenate((x, binarised_ocean_proximity), axis=1) # add binary 'dummy variables' for one-hot encoding of categorical variable
+        #binarised_ocean_proximity = pd.DataFrame(lb.transform(x['ocean_proximity']))
+        
+        #Using label_binarize because can order class labels
+        binarised_ocean_proximity = pd.DataFrame(preprocessing.label_binarize(
+            x.ocean_proximity, classes=['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']),  # keeping the order of the columns constant
+            columns= ['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']) # adding column names
+        
+        x = x.drop(labels='ocean_proximity', axis=1) #deleting categorical column before adding the new one
+        x = pd.concat([x, binarised_ocean_proximity], axis=1) # adding the 5 dummy columns
+
+        # Removed below because we want to keep it a dataframe for now
+        # x = np.concatenate((x, binarised_ocean_proximity), axis=1) # add binary 'dummy variables' for one-hot encoding of categorical variable
+        
+        
         # perform constant normalisation on columns
+        print(x)
         columns = ['longitude', 'latitude', 'median_income', 'housing_median_age',
                     'total_rooms', 'total_bedrooms', 'population', 'households', '<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']
-
         min_max_scaler = preprocessing.MinMaxScaler()
 
         for col in columns:
+            # print(x[col])
             np_x = np.array(x[col]).reshape(-1, 1)
             x[col] = pd.DataFrame(min_max_scaler.fit_transform(np_x))
         x = np.array(x)
@@ -144,11 +156,9 @@ class Regressor():
         #######################################################################
 
         X, Y = self._preprocessor(x, y, training = True)
-        self.network.train(self, X, Y)
+        self.network.train(X, Y)
 
         return self
-        
-
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################

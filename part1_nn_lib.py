@@ -189,6 +189,9 @@ class ReluLayer(Layer):
         # self.mask = np.greater(x, 0)
         # self._cache_current = np.greater(x, 0)
         # np.multiply(x, self._cache_current)
+
+
+        self._cache_current = np.maximum(0, x)
         return self._cache_current
 
         #######################################################################
@@ -296,7 +299,7 @@ class LinearLayer(Layer):
         # to line up these values for matrix multiplication, we need to have 
 
 
-        print("I AM LORD LINEAR \n HEAR YE HEAR YE \n", np.matmul(x, self._W) + self._b)
+        # print("I AM LORD LINEAR \n HEAR YE HEAR YE \n", np.matmul(x, self._W) + self._b)
         return np.matmul(x, self._W) + self._b
 
         #######################################################################
@@ -421,7 +424,7 @@ class MultiLayerNetwork(object):
         # Loop through your layers, to go from first to last
         # Call the forward attribute of each, by giving the result of the previous layer into the next one
         for layer in self._layers:
-            print("RUN NUMBER SOMETHING GIVES \n", x)
+            # print("RUN NUMBER SOMETHING GIVES \n", x)
             x = layer.forward(x)
         
         return x
