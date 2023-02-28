@@ -193,9 +193,7 @@ class Regressor():
         #######################################################################
 
         X, _ = self._preprocessor(x, training = False)
-        network = nn.MultiLayerNetwork(self.input_size, self.neurons, self.activations)
-        network = network.load_network('./part2_model.pickle')
-        preds = network(X).argmax(axis=1).squeeze()
+        preds = self.network.network(X).argmax(axis=1).squeeze()
         
         return preds
 
@@ -283,10 +281,18 @@ def example_main():
     # Feel free to use another CSV reader tool
     # But remember that LabTS tests take Pandas DataFrame as inputs
     data = pd.read_csv("housing.csv") 
+    data = data.sample(frac=1).reset_index(drop=True)
+
 
     # Splitting input and output
-    x_train = data.loc[:, data.columns != output_label]
-    y_train = data.loc[:, [output_label]]
+    x= data.loc[:, data.columns != output_label]
+    y = data.loc[:, [output_label]]
+
+    split_idx = int(0.8 * len(x))
+    x_train = x[:split_idx]
+    y_train = y[:split_idx]
+    x_test = x[split_idx:]
+    y_test = y[split_idx:]
 
     # Training
     # This example trains on the whole available dataset. 
@@ -295,6 +301,9 @@ def example_main():
     regressor = Regressor(x_train, nb_epoch = 1)
     regressor.fit(x_train, y_train)
     save_regressor(regressor)
+
+    reg = load_regressor()
+    reg.predict(x_test)
 
     # # Error
     # error = regressor.score(x_train, y_train)
