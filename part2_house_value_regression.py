@@ -32,9 +32,8 @@ class Regressor():
         #######################################################################
 
         # Setting up necessary attributes
-        self.x = copy.deepcopy(x)
-        self.x, _ = self._preprocessor(self.x, training = True)
-        self.input_size = self.x.shape[1]
+        self.x, _ = self._preprocessor(x, training = True)
+        self.input_size = self.x.shape[1] + 4 # 5 dummy variable parameters to be added minus the original parameter
         self.output_size = 1
         self.nb_epoch = nb_epoch 
         self.neurons = neurons
@@ -108,11 +107,8 @@ class Regressor():
         lb.fit(x.ocean_proximity)
         # store 1-hot encoded data into binarised_ocean
         binarised_ocean_proximity = lb.transform(x['ocean_proximity'])
-        # print(binarised_ocean_proximity)
-        
-        for i in range(len(x)):
-            x['ocean_proximity'][i] = binarised_ocean_proximity[i]
-        
+        x = x.drop(labels='ocean_proximity', axis=1)
+        x = np.concatenate((x, binarised_ocean_proximity), axis=1) # add binary 'dummy variables' for one-hot encoding of categorical variable
         # perform constant normalisation on columns
         columns = ['longitude', 'latitude', 'median_income', 'housing_median_age',
                     'total_rooms', 'total_bedrooms', 'population', 'households']
