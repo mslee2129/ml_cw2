@@ -192,10 +192,12 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        X, _ = self._preprocessor(x, training = False) # Do not forget
-
+        X, _ = self._preprocessor(x, training = False)
+        network = nn.MultiLayerNetwork(self.input_size, self.neurons, self.activations)
+        network = network.load_network('./part2_model.pickle')
+        preds = network(X).argmax(axis=1).squeeze()
         
-        pass
+        return preds
 
         #######################################################################
         #                       ** END OF YOUR CODE **
