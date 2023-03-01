@@ -109,11 +109,6 @@ class Regressor():
         # REPORT
         # print(x.isna().sum()) 
 
-
-
-        # REMOVING NA VALUES FROM X
-        x = x.fillna(0)
-
 # TO DO, DO NOT HARD CODE THE NAME OF THE COLUMNS BELOW
 
         # DEALING WITH CATEGORICAL VARIABLES
@@ -128,6 +123,9 @@ class Regressor():
         x = x.drop(labels='ocean_proximity', axis=1) #deleting categorical column before adding the new one
         x.reset_index(drop=True, inplace=True)
         x = pd.concat([x, binarised_ocean_proximity], axis=1) # adding the 5 dummy columns
+
+        # REMOVING NA VALUES FROM X
+        x = x.fillna(0)
             
         # IF TESTING, USE STORED PREPROCESSED ATTRIBUTES FOR X
         if not training:
