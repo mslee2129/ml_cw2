@@ -142,7 +142,7 @@ class Regressor():
         self.minValuesX = np.min(x, axis=0)
         self.maxValuesX = np.max(x, axis=0)
         x = self.lowerBound + ((x - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
-
+        print("BEFORE RETURN :", np.sum(np.isnan(x)))
         return (x, y)
 
         #######################################################################
