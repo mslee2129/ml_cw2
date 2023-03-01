@@ -191,14 +191,14 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
         X, _ = self._preprocessor(x, training = False)
-        print("\n X after preprocessing", X[-100:,-5:])
-        print("Same as above, this time number of NA:", np.sum(np.isnan(X)))
+        # print("\n X after preprocessing", X[-100:,-5:])
+        # print("Same as above, this time number of NA:", np.sum(np.isnan(X)))
 
         norm_pred = self.network.network(X).squeeze()
-        print("\n pre unnormalise: ", norm_pred)
+        # print("\n pre unnormalise: ", norm_pred)
         
         predictedValues = self.minValuesY + ((norm_pred - self.lowerBound) * (self.maxValuesY - self.minValuesY)) / (self.upperBound - self.lowerBound)
-        print("\n Predicted Values once unnormalised", predictedValues)
+        # print("\n Predicted Values once unnormalised", predictedValues)
         return predictedValues
 
         #######################################################################
@@ -224,7 +224,7 @@ class Regressor():
         #######################################################################    
         y = (np.array(y)).astype(float).squeeze()
         predictions = self.predict(x)
-        print (y)
+        # print (y)
         rmse = np.sqrt(mean_squared_error(y, predictions))
 
 
