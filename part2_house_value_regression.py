@@ -125,24 +125,22 @@ class Regressor():
         x = pd.concat([x, binarised_ocean_proximity], axis=1) # adding the 5 dummy columns
 
         # REMOVING NA VALUES FROM X
-        print("BEFORE FILL NA:", np.sum(np.isnan(x)))
         x = x.fillna(0)
-        print("AFTER FILL NA:", np.sum(np.isnan(x)))
 
         # IF TESTING, USE STORED PREPROCESSED ATTRIBUTES FOR X
         if not training:
             x = (np.array(x)).astype(float)
-            x = self.lowerBound + ((x - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
+            x[:,:-5] = self.lowerBound + ((x[:,:-5] - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
 
             return (x, y)
 
         # IF TRAINING
         # PREPROCESSING X
         x = (np.array(x)).astype(float)
-        self.minValuesX = np.min(x, axis=0)
-        self.maxValuesX = np.max(x, axis=0)
-        x = self.lowerBound + ((x - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
-        print("BEFORE RETURN :", np.sum(np.isnan(x)))
+        self.minValuesX = np.min(x[:,:-5], axis=0)
+        self.maxValuesX = np.max(x[:,:-5], axis=0)
+        x[:,:-5] = self.lowerBound + ((x[:,:-5] - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
+
         return (x, y)
 
         #######################################################################
