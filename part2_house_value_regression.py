@@ -3,12 +3,14 @@ import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.base import BaseEstimator
 import part1_nn_lib as nn
 
 
-class Regressor():
+class Regressor(BaseEstimator):
 
-    def __init__(self, x, nb_epoch = 1000, neurons = [20,10,5,1], activations=["sigmoid","relu","sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True):
+    def __init__(self, x, nb_epoch = 100, neurons = [20,10,5,1], activations=["sigmoid","relu","sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -37,11 +39,11 @@ class Regressor():
         self.maxValuesY = []
         self.upperBound = 1.0
         self.lowerBound = 0.0
-        self.x, _ = self._preprocessor(x, training = True)
-        
+        # self.x, _ = self._preprocessor(x, training = True)
+        self.x = x
         # Setting up necessary attributes
-        self.input_size = self.x.shape[1]
-        self.nb_epoch = nb_epoch 
+        self.input_size = x.shape[1]+4
+        self.nb_epoch = nb_epoch
         self.neurons = neurons
         self.activations = activations
         self.batch_size = batch_size
@@ -87,7 +89,7 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################        
-
+   
         # PREPROCESSING Y
         if y is not None:
             # Calculate preprocessing values of Y, if not None
@@ -95,7 +97,7 @@ class Regressor():
             self.minValuesY = np.min(y, axis=0)
             self.maxValuesY = np.max(y, axis=0)
             y = self.lowerBound + ((y - self.minValuesY) * (self.upperBound - self.lowerBound) / (self.maxValuesY - self.minValuesY))
-        
+
         # if y is not None:
         #     # Check if some Y values are missing, if so remove the whole line
         #     # Get the index values of all the Y rows with empty values
@@ -189,12 +191,12 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
         X, _ = self._preprocessor(x, training = False)
-        print("\n X after preprocessing unnormalise: ", X)
+        # print("\n X after preprocessing unnormalise: ", X)
         norm_pred = self.network.network(X).squeeze()
-        print("\n pre unnormalise: ", norm_pred)
+        # print("\n pre unnormalise: ", norm_pred)
         
         predictedValues = self.minValuesY + ((norm_pred - self.lowerBound) * (self.maxValuesY - self.minValuesY)) / (self.upperBound - self.lowerBound)
-        print("\n Predicted Values once unnormalised", predictedValues)
+        # print("\n Predicted Values once unnormalised", predictedValues)
         return predictedValues
 
         #######################################################################
@@ -220,23 +222,23 @@ class Regressor():
         #######################################################################    
         y = (np.array(y)).astype(float).squeeze()
         predictions = self.predict(x)
-        print (y)
+        # print (y)
         rmse = np.sqrt(mean_squared_error(y, predictions))
 
 
-        print("\n|------------- MODEL PERFORMANCE -------------|")
-        print("|  root_mean_squared_error                 ")
-        print("|  ",rmse)
-        print("|  Average Value of Predictions   ")
-        print("|  ",np.average(predictions))
-        print("| REAL average  ")
-        print("|  ",np.average(y))
-        print("|  Max - Min of Predictions  ")
-        print("|  Max : ",np.max(predictions),"  Min: ", np.min(predictions))
-        print("|  Max - Min of REAL  ")
-        print("|  Max : ",np.max(y),"  Min: ", np.min(y))
+        # print("\n|------------- MODEL PERFORMANCE -------------|")
+        # print("|  root_mean_squared_error                 ")
+        # print("|  ",rmse)
+        # print("|  Average Value of Predictions   ")
+        # print("|  ",np.average(predictions))
+        # print("| REAL average  ")
+        # print("|  ",np.average(y))
+        # print("|  Max - Min of Predictions  ")
+        # print("|  Max : ",np.max(predictions),"  Min: ", np.min(predictions))
+        # print("|  Max - Min of REAL  ")
+        # print("|  Max : ",np.max(y),"  Min: ", np.min(y))
     
-        print("|---------------------------------------------|\n")
+        # print("|---------------------------------------------|\n")
         return rmse
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -264,30 +266,83 @@ def load_regressor():
 
 
 
-def RegressorHyperParameterSearch(): 
+def RegressorHyperParameterSearch(x, y): 
     # Ensure to add whatever inputs you deem necessary to this function
     """
     Performs a hyper-parameter for fine-tuning the regressor implemented 
     in the Regressor class.
 
     Arguments:
-        Add whatever inputs you need.
+        - x {pd.DataFrame} -- Raw input array of shape 
+                (dataset_size, input_size).
+        - y {pd.DataFrame} -- Raw output array of shape (dataset_size, 1).
         
     Returns:
-        The function should return your optimised hyper-parameters. 
+        {dictionary} -- Dictionary containing the optimal hyper-parameters
 
     """
 
     #######################################################################
     #                       ** START OF YOUR CODE **
     #######################################################################
+    
+    # nb_epoch = [100, 500, 1000]
+    # neurons = [[20,10,5,1],[30,30,15,1]]
+    # batch_size = [32, 64, 128, 256]
+    # learning_rate = [0.01, 0.05]
+    # activations = [["relu","relu","relu", "identity"],["sigmoid", "sigmoid", "sigmoid", "identity"]]
 
-    return  # Return the chosen hyper parameters
+    nb_epoch = [50]
+    neurons = [[20,10,5,1]]
+    batch_size = [32]
+    learning_rate = [0.01, 0.05]
+    activations = [["relu","relu","relu", "identity"]]
+    
+    param_grid = {
+        "nb_epoch" : nb_epoch,
+        "neurons" : neurons,
+        "batch_size": batch_size,
+        "learning_rate" : learning_rate,
+        "activations" : activations,
+    }
+    
+    regressor = Regressor(x)
+    
+    optimal_model = GridSearchCV(
+        estimator=regressor,
+        param_grid=param_grid,
+        scoring="neg_root_mean_squared_error",
+        verbose=4
+        ).fit(x,y)
+
+    with open("result.pickle", "wb") as target:
+        pickle.dump(optimal_model, target)
+        
+    # print(optimal_model.best_estimator_ )
+    print(type(optimal_model.best_estimator_))
+
+    return optimal_model.best_estimator_ # Return the chosen hyper parameters
 
     #######################################################################
     #                       ** END OF YOUR CODE **
     #######################################################################
 
+def dummy_main():
+    output_label = "median_house_value"
+
+    # Use pandas to read CSV data as it contains various object types
+    # Feel free to use another CSV reader tool
+    # But remember that LabTS tests take Pandas DataFrame as inputs
+    data = pd.read_csv("housing.csv") 
+    data = data.sample(frac=1).reset_index(drop=True)
+
+
+    # Splitting input and output
+    x = data.loc[:, data.columns != output_label]
+    y = data.loc[:, [output_label]]
+    
+    RegressorHyperParameterSearch(x, y)
+    
 
 def example_main():
 
@@ -328,4 +383,4 @@ def example_main():
 
 
 if __name__ == "__main__":
-    example_main()
+    dummy_main()
