@@ -8,7 +8,7 @@ import part1_nn_lib as nn
 
 class Regressor():
 
-    def __init__(self, x, nb_epoch = 100, neurons = [5,1], activations=["sigmoid", "identity"], batch_size = 8000, learning_rate=0.01, shuffle_flag=True):
+    def __init__(self, x, nb_epoch = 1000, neurons = [20,10,5,1], activations=["sigmoid","relu","sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -189,12 +189,12 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
         X, _ = self._preprocessor(x, training = False)
-        print("X after preprocessing unnormalise: ", X)
+        print("\n X after preprocessing unnormalise: ", X)
         norm_pred = self.network.network(X).squeeze()
-        print("pre unnormalise: ", norm_pred)
+        print("\n pre unnormalise: ", norm_pred)
         
         predictedValues = self.minValuesY + ((norm_pred - self.lowerBound) * (self.maxValuesY - self.minValuesY)) / (self.upperBound - self.lowerBound)
-        print(predictedValues)
+        print("\n Predicted Values once unnormalised", predictedValues)
         return predictedValues
 
         #######################################################################
@@ -225,14 +225,19 @@ class Regressor():
 
 
         print("\n|------------- MODEL PERFORMANCE -------------|")
-        print("|            root_mean_squared_error                 |")
-        print("|                 ",rmse,"                       |")
-        # print("|                   PRECISION                 |")
-        # print("|                    ",precision,"                    |")
-        # print("|                   RECALL                    |")
-        # print("|                    ",recall,"                    |")
+        print("|  root_mean_squared_error                 ")
+        print("|  ",rmse)
+        print("|  Average Value of Predictions   ")
+        print("|  ",np.average(predictions))
+        print("| REAL average  ")
+        print("|  ",np.average(y))
+        print("|  Max - Min of Predictions  ")
+        print("|  Max : ",np.max(predictions),"  Min: ", np.min(predictions))
+        print("|  Max - Min of REAL  ")
+        print("|  Max : ",np.max(y),"  Min: ", np.min(y))
+    
         print("|---------------------------------------------|\n")
-        return 0 # Replace this code with your own
+        return rmse
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
