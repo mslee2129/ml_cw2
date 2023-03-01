@@ -8,7 +8,7 @@ import part1_nn_lib as nn
 
 class Regressor():
 
-    def __init__(self, x, nb_epoch = 1000, neurons = [2,1], activations=["sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True):
+    def __init__(self, x, nb_epoch = 100, neurons = [5,1], activations=["sigmoid", "identity"], batch_size = 8000, learning_rate=0.01, shuffle_flag=True):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -57,7 +57,7 @@ class Regressor():
             batch_size=self.batch_size,
             nb_epoch=self.nb_epoch,
             learning_rate=self.learning_rate,
-            loss_fun="cross_entropy",
+            loss_fun="mse",
             shuffle_flag=True,
         )
 
@@ -189,11 +189,13 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
         X, _ = self._preprocessor(x, training = False)
-        norm_pred = self.network.network(X).squeeze() 
+        print("X after preprocessing unnormalise: ", X)
+        norm_pred = self.network.network(X).squeeze()
+        print("pre unnormalise: ", norm_pred)
         
-        self.preds = self.minValuesY + ((norm_pred - self.lowerBound) * (self.maxValuesY - self.minValuesY)) / (self.upperBound - self.lowerBound)
-
-        return self.preds
+        predictedValues = self.minValuesY + ((norm_pred - self.lowerBound) * (self.maxValuesY - self.minValuesY)) / (self.upperBound - self.lowerBound)
+        print(predictedValues)
+        return predictedValues
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -215,24 +217,22 @@ class Regressor():
 
         #######################################################################
         #                       ** START OF YOUR CODE **
-        #######################################################################
-        # _, Y = self._preprocessor(x, y = y, training = True)          
-        # Y = Y.squeeze()
-   
-        
-        mse = np.sqrt(mean_squared_error(y, self.preds))
+        #######################################################################    
+        y = (np.array(y)).astype(float).squeeze()
+        predictions = self.predict(x)
+        print (y)
+        rmse = np.sqrt(mean_squared_error(y, predictions))
 
 
         print("\n|------------- MODEL PERFORMANCE -------------|")
-        print("|            mean_squared_error                 |")
-        print("|                 ",mse,"                       |")
+        print("|            root_mean_squared_error                 |")
+        print("|                 ",rmse,"                       |")
         # print("|                   PRECISION                 |")
         # print("|                    ",precision,"                    |")
         # print("|                   RECALL                    |")
         # print("|                    ",recall,"                    |")
         print("|---------------------------------------------|\n")
         return 0 # Replace this code with your own
-
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -316,12 +316,10 @@ def example_main():
     save_regressor(regressor)
 
     reg = load_regressor()
-    reg.predict(x_test)
-    reg.score(x_test, y_test)
 
     # # Error
-    # error = regressor.score(x_train, y_train)
-    # print("\nRegressor error: {}\n".format(error))
+    error = reg.score(x_test,y_test)
+    print("\nRegressor error: {}\n".format(error))
 
 
 if __name__ == "__main__":
