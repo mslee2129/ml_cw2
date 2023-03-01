@@ -2,13 +2,13 @@ import pickle
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
-from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.metrics import mean_squared_error, r2_score
 import part1_nn_lib as nn
 
 
 class Regressor():
 
-    def __init__(self, x, nb_epoch = 5, neurons = [2,2], activations=["relu", "identity"], batch_size = 8000, learning_rate=0.01, shuffle_flag=True):
+    def __init__(self, x, nb_epoch = 1000, neurons = [2,1], activations=["sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -30,11 +30,17 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
-        # Setting up necessary attributes
+        # Preprocessing values
+        self.minValuesX = []
+        self.maxValuesX = []
+        self.minValuesY = []
+        self.maxValuesY = []
+        self.upperBound = 1.0
+        self.lowerBound = 0.0
         self.x, _ = self._preprocessor(x, training = True)
+        
+        # Setting up necessary attributes
         self.input_size = self.x.shape[1]
-        self.output_size = 1
         self.nb_epoch = nb_epoch 
         self.neurons = neurons
         self.activations = activations
@@ -80,72 +86,59 @@ class Regressor():
 
         #######################################################################
         #                       ** START OF YOUR CODE **
-        #######################################################################
+        #######################################################################        
 
-        # Return preprocessed x and y, return None for y if it was None
-        if y is not None: # Preprocess y if it is not None
-            # normalise y
-            min_max_scaler = preprocessing.MinMaxScaler()
-            np_y = np.array(y).reshape(-1, 1)
-            y = pd.DataFrame(min_max_scaler.fit_transform(np_y))
-            # conver to torch tensor
-            y = np.array(y)
-            
-        # If training is false, return the preprocessed dataset
-        if training == False:
-            # Use the x_train normalising MIN-MAX VALUES (THAT WE NEED TO STORE)
-            # TO NORMALISE THE TESTING DATA
-            # RETURN THE NORMALIZED TESTING DATA
-            # DO THE SAME FOR Y_TRAIN AND Y_TEST IF NECESSARY
-            return 0
+        # PREPROCESSING Y
+        if y is not None:
+            # Calculate preprocessing values of Y, if not None
+            y = (np.array(y)).astype(float)
+            self.minValuesY = np.min(y, axis=0)
+            self.maxValuesY = np.max(y, axis=0)
+            y = self.lowerBound + ((y - self.minValuesY) * (self.upperBound - self.lowerBound) / (self.maxValuesY - self.minValuesY))
+        
+        # if y is not None:
+        #     # Check if some Y values are missing, if so remove the whole line
+        #     # Get the index values of all the Y rows with empty values
+        #     drop_index = y[y.isna()].index.tolist()
 
-        #################################
-        # TRAINING IS TRUE FOR THE BELOW:
-        #################################
-        # checking if some empty values in ocean_proximity before doing one-hot encoding
-        # REPORT
-        # print(x.isna().sum()) 
+        #     # Drop them from Y
+        #     y = y.drop(drop_index, axis = 0)
+        #     # Drop them from X
+        #     x = x.drop(drop_index, axis = 0)
 
-        # fill empty values with 0
+
+        # REMOVING NA VALUES FROM X
         x = x.fillna(0)
 
+# TO DO, DO NOT HARD CODE THE NAME OF THE COLUMNS BELOW
 
-        # print("\n==================================================\n")
-        # for (columnName, columnData) in x.iteritems():
-        #     print(columnName)
-        #     print(" has number of NA: ", columnData.isna().sum())
-        # print("\n==================================================\n")
-
-        
-
-        # perform one-hot encoding on ocean_proximity
-        # categories are: ['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']
-        # lb = preprocessing.LabelBinarizer()
-        # lb.fit(x.ocean_proximity)
-        # store 1-hot encoded data into binarised_ocean
-        # binarised_ocean_proximity = pd.DataFrame(lb.transform(x['ocean_proximity']))
-        
-        #Using label_binarize because can order class labels
-        binarised_ocean_proximity = pd.DataFrame(preprocessing.label_binarize(
-            x.ocean_proximity, classes=['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']),  # keeping the order of the columns constant
-            columns= ['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']) # adding column names
+        # DEALING WITH CATEGORICAL VARIABLES
+        binarised_ocean_proximity = pd.DataFrame(
+            preprocessing.label_binarize(
+                x.ocean_proximity, 
+                classes=['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN'],  # keeping the order of the columns constant
+            ),
+            columns= ['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN'] # adding column names
+        ) 
         
         x = x.drop(labels='ocean_proximity', axis=1) #deleting categorical column before adding the new one
+        x.reset_index(drop=True, inplace=True)
         x = pd.concat([x, binarised_ocean_proximity], axis=1) # adding the 5 dummy columns
+            
+        # IF TESTING, USE STORED PREPROCESSED ATTRIBUTES FOR X
+        if not training:
+            x = (np.array(x)).astype(float)
+            x = self.lowerBound + ((x - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
 
-        # Removed below because we want to keep it a dataframe for now
-        # x = np.concatenate((x, binarised_ocean_proximity), axis=1) # add binary 'dummy variables' for one-hot encoding of categorical variable
-                
-        # perform constant normalisation on columns
-        columns = ['longitude', 'latitude', 'median_income', 'housing_median_age',
-                    'total_rooms', 'total_bedrooms', 'population', 'households', '<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN']
-        min_max_scaler = preprocessing.MinMaxScaler()
+            return (x, y)
 
-        for col in columns:
-            np_x = np.array(x[col]).reshape(-1, 1)
-            x[col] = pd.DataFrame(min_max_scaler.fit_transform(np_x))
-        
-        x = np.array(x)
+        # IF TRAINING
+        # PREPROCESSING X
+        x = (np.array(x)).astype(float)
+        self.minValuesX = np.min(x, axis=0)
+        self.maxValuesX = np.max(x, axis=0)
+        x = self.lowerBound + ((x - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
+
         return (x, y)
 
         #######################################################################
@@ -170,7 +163,6 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
         X, Y = self._preprocessor(x, y, training = True)
         self.network.train(X, Y)
 
@@ -196,11 +188,11 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        print(x.shape)
         X, _ = self._preprocessor(x, training = False)
-        print(X.shape)
-        self.preds = self.network.network(X).argmax(axis=1).squeeze()
+        norm_pred = self.network.network(X).squeeze() 
         
+        self.preds = self.minValuesY + ((norm_pred - self.lowerBound) * (self.maxValuesY - self.minValuesY)) / (self.upperBound - self.lowerBound)
+
         return self.preds
 
         #######################################################################
@@ -224,20 +216,21 @@ class Regressor():
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        _, Y = self._preprocessor(x, y = y, training = False) 
-        accuracy = accuracy_score(self.preds, Y)
-        precision = precision_score(self.preds, Y, average='macro')
-        recall = recall_score(self.preds, Y, average='macro')
+        # _, Y = self._preprocessor(x, y = y, training = True)          
+        # Y = Y.squeeze()
+   
         
+        mse = np.sqrt(mean_squared_error(y, self.preds))
 
-        print("\n|------------- MODEL PERFORMANCE -------------|\n")
-        print("|                   ACCURACY                    |\n")
-        print("|                 ",accuracy,"                  |\n")
-        print("|                   PRECISION                   |\n")
-        print("|                 ",precision,"                 |\n")
-        print("|                   RECALL                      |\n")
-        print("|                 ",recall,"                    |\n")
-        print("\n |------------- ----------------- -------------|\n")
+
+        print("\n|------------- MODEL PERFORMANCE -------------|")
+        print("|            mean_squared_error                 |")
+        print("|                 ",mse,"                       |")
+        # print("|                   PRECISION                 |")
+        # print("|                    ",precision,"                    |")
+        # print("|                   RECALL                    |")
+        # print("|                    ",recall,"                    |")
+        print("|---------------------------------------------|\n")
         return 0 # Replace this code with your own
 
         #######################################################################
@@ -312,13 +305,13 @@ def example_main():
     x_test = x[split_idx:]
     y_test = y[split_idx:]
 
-    print(x_test.shape)
-    print(y_test.shape)
+    # print(x_test.shape)
+    # print(y_test.shape)
     # Training
     # This example trains on the whole available dataset. 
     # You probably want to separate some held-out data 
     # to make sure the model isn't overfitting
-    regressor = Regressor(x_train, nb_epoch = 1)
+    regressor = Regressor(x_train)
     regressor.fit(x_train, y_train)
     save_regressor(regressor)
 

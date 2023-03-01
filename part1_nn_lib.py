@@ -453,6 +453,7 @@ class MultiLayerNetwork(object):
         # Call the forward attribute of each, by giving the result of the previous layer into the next one
         for layer in self._layers:
             # print("\nINPUT\n", x)
+            
             x = layer.forward(x)
             # print("\FORWARD\n", x)
 
@@ -671,6 +672,8 @@ class Trainer(object):
         #######################################################################
         # Forward Pass
         output = self.network.forward(input_dataset)
+        
+        
         loss = self._loss_layer.forward(output, target_dataset)
         return loss
 
@@ -728,7 +731,9 @@ class Preprocessor(object):
         # normalise column by column
         for col_index in range(np.shape(data)[1]):
             data[:,col_index] = self.lowerBound + ((data[:,col_index] - self.dataMin[col_index]) * (self.upperBound - self.lowerBound)) / (self.dataMax[col_index] - self.dataMin[col_index])
-
+        
+        # TO DO : UPGRADE CODE: x = self.lowerBound + ((x - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
+        
         return data
         #######################################################################
         #                       ** END OF YOUR CODE **
