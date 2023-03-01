@@ -8,7 +8,7 @@ import part1_nn_lib as nn
 
 class Regressor():
 
-    def __init__(self, x, nb_epoch = 1000, neurons = [20,10,5,1], activations=["sigmoid","relu","sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True):
+    def __init__(self, x, nb_epoch = 100, neurons = [20,1], activations=["sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -106,6 +106,10 @@ class Regressor():
         #     # Drop them from X
         #     x = x.drop(drop_index, axis = 0)
 
+        # REPORT
+        # print(x.isna().sum()) 
+
+
 
         # REMOVING NA VALUES FROM X
         x = x.fillna(0)
@@ -189,7 +193,9 @@ class Regressor():
         #                       ** START OF YOUR CODE **
         #######################################################################
         X, _ = self._preprocessor(x, training = False)
-        print("\n X after preprocessing unnormalise: ", X)
+        print("\n X after preprocessing", X[-100:,-5:])
+        print("Same as above, this time number of NA:", np.sum(np.isnan(X)))
+
         norm_pred = self.network.network(X).squeeze()
         print("\n pre unnormalise: ", norm_pred)
         
