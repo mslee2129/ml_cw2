@@ -7,7 +7,7 @@ import part1_nn_lib as nn
 from sklearn.model_selection import GridSearchCV
 from sklearn.base import BaseEstimator
 import matplotlib.pyplot as plt
-
+import json
 
 class Regressor(BaseEstimator):
 
@@ -33,14 +33,14 @@ class Regressor(BaseEstimator):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        # Preprocessing values
+        # Preprocessing attributes
         self.minValuesX = []
         self.maxValuesX = []
         self.minValuesY = []
         self.maxValuesY = []
         self.upperBound = 1.0
         self.lowerBound = 0.0
-        # self.x, _ = self._preprocessor(x, training = True)
+
         self.x = x
         # Setting up necessary attributes
         self.input_size = self.x.shape[1]+4
@@ -293,20 +293,19 @@ def RegressorHyperParameterSearch(x,y):
     #                       ** START OF YOUR CODE **
     #######################################################################
 
-    # nb_epoch = [100, 500, 1000]
-    # neurons = [[20,10,5,1],[30,30,15,1]]
-    # batch_size = [32, 64, 128, 256]
-    # learning_rate = [0.01, 0.05]
-    # activations = [["relu","relu","relu", "identity"],["sigmoid", "sigmoid", "sigmoid", "identity"]]
-
-    nb_epoch = [50]
-    neurons = [[20,10,5,1]]
-    batch_size = [32]
-    learning_rate = [0.01]
-    activations = [["relu","relu","relu", "identity"]]
-    dropout_rate = [0.1]
+    # Values to test
+    nb_epoch = [50,100,500,1000,5000]
+    neurons = [[20,10,5,1],[30,30,15,1],[50,50,25,1]]
+    batch_size = [32,64,128]
+    learning_rate = [0.01,0.05]
+    activations = [["relu", "relu", "relu", "identity"], 
+                   ["sigmoid", "sigmoid", "sigmoid", "identity"],
+                   ["relu", "sigmoid", "relu", "identity"],
+                   ["leakyrelu", "leakyrelu","leakyrelu"]
+                   ]
+    dropout_rate = [0.1, 0.2, 0.5]
     
-    param_grid = {
+    parameters = {
         "nb_epoch" : nb_epoch,
         "neurons" : neurons,
         "batch_size": batch_size,
@@ -317,27 +316,33 @@ def RegressorHyperParameterSearch(x,y):
     
     regressor = Regressor(x)
     
-    optimal_model = GridSearchCV(
+    gs = GridSearchCV(
         estimator=regressor,
-        param_grid=param_grid,
+        param_grid=parameters,
         scoring="neg_root_mean_squared_error",
-        verbose=4
-        ).fit(x,y)
+        verbose=4,
+        return_train_score = True,
+        cv = 2
+        )
+    
+    result = gs.fit(x,y)
 
-    with open("result.pickle", "wb") as target:
-        pickle.dump(optimal_model, target)
-        
-    # print(optimal_model.best_estimator_ )
-    print(type(optimal_model.best_estimator_))
+    df = pd.DataFrame(result.cv_results_)
+    df.to_csv('gridResults.csv')
 
+    print("\nIt has score (on cross-validation):", result.best_score_)
+    print("\nIt has parameters :", result.best_params_)
 
+    return result.best_estimator_ #returning the best model
 
     #######################################################################
     #                       ** END OF YOUR CODE **
     #######################################################################
 
 
-
+#######################################################################
+#                       ** EPOCH **
+#######################################################################
 
 def overfitting_analysis():
     output_label = "median_house_value"
@@ -410,6 +415,11 @@ def graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_e
     plt.savefig(file_name)
     plt.clf() # Clears the figure so the graphs don't overlap in the saved file
 
+
+#######################################################################
+#                       ** END EPOCH / Start MAIN **
+#######################################################################
+
 def example_main():
 
     output_label = "median_house_value"
@@ -431,15 +441,7 @@ def example_main():
     x_test = x[split_idx:]
     y_test = y[split_idx:]
 
-    # print(x_test.shape)
-    # print(y_test.shape)
-    # Training
-    # This example trains on the whole available dataset. 
-    # You probably want to separate some held-out data 
-    # to make sure the model isn't overfitting
-    regressor = Regressor(x_train)
-    regressor.fit(x_train, y_train)
-    save_regressor(regressor)
+    save_regressor(RegressorHyperParameterSearch(x_train, y_train))
 
     reg = load_regressor()
 
@@ -450,6 +452,7 @@ def example_main():
 
 if __name__ == "__main__":
     example_main()
+    #example_main()
 
     # epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
 
