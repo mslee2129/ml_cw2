@@ -221,6 +221,69 @@ class ReluLayer(Layer):
         #                       ** END OF YOUR CODE **
         #######################################################################
 
+# Leaky ReLu implementation for Q2
+class LeakyReluLayer(Layer):
+    """
+    LeakyReluLayer: Applies LeakyRelu function elementwise.
+    """
+
+    def __init__(self):
+        """
+        Constructor of the LeakyRelu layer.
+        """
+        self._cache_current = None
+        self.slope = 0.1
+
+    def forward(self, x):
+        """ 
+        Performs forward pass through the LeakyRelu layer.
+
+        Logs information needed to compute gradient at a later stage in
+        `_cache_current`.
+
+        Arguments:
+            x {np.ndarray} -- Input array of shape (batch_size, n_in).
+
+        Returns:
+            {np.ndarray} -- Output array of shape (batch_size, n_out)
+        """
+        #######################################################################
+        #                       ** START OF YOUR CODE **
+        #######################################################################
+        self._cache_current = np.maximum(self.slope*x, x)
+        return self._cache_current
+
+        #######################################################################
+        #                       ** END OF YOUR CODE **
+        #######################################################################
+
+    def backward(self, grad_z):
+        """
+        Given `grad_z`, the gradient of some scalar (e.g. loss) with respect to
+        the output of this layer, performs back pass through the layer (i.e.
+        computes gradients of loss with respect to parameters of layer and
+        inputs of layer).
+
+        Arguments:
+            grad_z {np.ndarray} -- Gradient array of shape (batch_size, n_out).
+
+        Returns:
+            {np.ndarray} -- Array containing gradient with respect to layer
+                input, of shape (batch_size, n_in).
+        """
+        #######################################################################
+        #                       ** START OF YOUR CODE **
+        #######################################################################
+        grad_z[self._cache_current <= 0] *= self.slope
+        grad_z[self._cache_current > 0] *= 1
+
+        return grad_z
+
+        #######################################################################
+        #                       ** END OF YOUR CODE **
+        #######################################################################
+
+
 class IdentityLayer(Layer):
     """
     IdentityLayer: Passes input onwards unchanged.
@@ -431,6 +494,9 @@ class MultiLayerNetwork(object):
             # Create the activation layers to apply to the output of each linear layer
             if activations[i] == "relu":
                 self._layers.append(ReluLayer())
+            
+            elif activations[i] == "leakyrelu":
+                self._layers.append(LeakyReluLayer())
 
             elif activations[i] == "sigmoid":
                 self._layers.append(SigmoidLayer())
