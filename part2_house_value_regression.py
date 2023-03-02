@@ -18,7 +18,9 @@ class Regressor(BaseEstimator):
                 learning_rate = 0.01,
                 shuffle_flag = True,
                 dropout_rate = 0,
-                loss_fun = "mse"):
+                loss_fun = "mse",
+                upperBound = 1,
+                lowerBound = 0):
         """ 
         Initialise the model.
           
@@ -55,8 +57,8 @@ class Regressor(BaseEstimator):
         self.maxValuesX = []
         self.minValuesY = []
         self.maxValuesY = []
-        self.upperBound = 1.0
-        self.lowerBound = 0.0
+        self.upperBound = upperBound
+        self.lowerBound = lowerBound
 
         # Preprocessing data for dimensions
         pre_x = x
@@ -64,7 +66,8 @@ class Regressor(BaseEstimator):
         self.input_size = pre_x.shape[1]
 
         # Initialize Neural Network
-        self.net = nn.MultiLayerNetwork(self.input_size, self.neurons, self.activations, self.dropout_rate)
+        self.net = nn.MultiLayerNetwork(self.input_size, self.neurons, 
+                                        self.activations, self.dropout_rate)
 
         # Initialize Trainer
         self.network = nn.Trainer(
@@ -134,25 +137,27 @@ class Regressor(BaseEstimator):
         x = pd.concat([x, binarised_ocean_proximity], axis=1) # adding the 5 dummy columns
 
         # REMOVING NA VALUES FROM X 
-        # print("Mean of total bedrooms", sum(x['total_bedrooms'] == x['total_bedrooms'].mean()))
-        #print(x.isna().sum()) 
         x = x.fillna(x.mean())
-        # print(x.isna().sum()) 
-        #print("Mean of total bedrooms", sum(x['total_bedrooms'] == x['total_bedrooms'].mean()))
-
+        
         # IF TESTING, USE STORED PREPROCESSED ATTRIBUTES FOR X
         if not training:
             x = (np.array(x)).astype(float)
-            x[:,:-5] = self.lowerBound + ((x[:,:-5] - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
+            x[:,:-5] = self.lowerBound + ((x[:,:-5] - self.minValuesX)  
+                                          * (self.upperBound - self.lowerBound) 
+                                          / (self.maxValuesX - self.minValuesX)
+                                          )
 
             return (x, y)
 
-        # IF TRAINING
-        # PREPROCESSING X
+        # IF TRAINING, PREPROCESS X
         x = (np.array(x)).astype(float)
         self.minValuesX = np.min(x[:,:-5], axis=0)
         self.maxValuesX = np.max(x[:,:-5], axis=0)
-        x[:,:-5] = self.lowerBound + ((x[:,:-5] - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
+
+        x[:,:-5] = self.lowerBound + ((x[:,:-5] - self.minValuesX) 
+                                      * (self.upperBound - self.lowerBound) 
+                                      / (self.maxValuesX - self.minValuesX)
+                                      )
 
         return (x, y)
 
@@ -408,10 +413,12 @@ def overfitting_analysis():
         dropout_test_errors.append(dr.score(x_test,y_test))
         dropout_eval_errors.append(dr.score(x_train,y_train))
 
-    return (epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
+    return (epochs, dropout_eval_errors, no_dropout_eval_errors, 
+            dropout_test_errors, no_dropout_test_errors)
 
 
-def graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors):
+def graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, 
+             dropout_test_errors, no_dropout_test_errors):
     plt.figure(figsize=(8,6))
     plt.plot(epochs, dropout_eval_errors, label='Eval RMSE')
     plt.plot(epochs, dropout_test_errors, label='Test RMSE')
