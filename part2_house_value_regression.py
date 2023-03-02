@@ -7,7 +7,6 @@ import part1_nn_lib as nn
 from sklearn.model_selection import GridSearchCV
 from sklearn.base import BaseEstimator
 import matplotlib.pyplot as plt
-import json
 
 class Regressor(BaseEstimator):
 
@@ -481,7 +480,7 @@ def example_main():
 
 
 if __name__ == "__main__":
-    example_main()
+    dummy_main()
     #example_main()
 
     # epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
