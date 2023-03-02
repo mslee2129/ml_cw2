@@ -322,7 +322,6 @@ def RegressorHyperParameterSearch(x,y):
         scoring="neg_root_mean_squared_error",
         verbose=4,
         return_train_score = True,
-        cv = 2
         )
     
     result = gs.fit(x,y)
