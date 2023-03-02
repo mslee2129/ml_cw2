@@ -307,25 +307,15 @@ def RegressorHyperParameterSearch(x,y):
     #######################################################################
 
     # Values to test
-    # nb_epoch = [50,100,500,1000,5000]
-    # neurons = [[20,10,5,1],[30,30,15,1],[50,50,25,1]]
-    # batch_size = [32,64,128]
-    # learning_rate = [0.01,0.05]
-    # activations = [["relu", "relu", "relu", "identity"], 
-    #                ["sigmoid", "sigmoid", "sigmoid", "identity"],
-    #                ["relu", "sigmoid", "relu", "identity"],
-    #                ["leakyrelu", "leakyrelu","leakyrelu"]
-    #                ]
-    # dropout_rate = [0.1, 0.2, 0.5]
-
-    nb_epoch = [50, 60]
-    neurons = [[20,1]]
-    batch_size = [128]
-    learning_rate = [0.01]
-    activations = [
+    nb_epoch = [50,100,500,1000]
+    neurons = [[20,10,5,1],[30,30,15,1],[50,50,25,1]]
+    batch_size = [32,64,128]
+    learning_rate = [0.01,0.05]
+    activations = [["relu", "relu", "relu", "identity"], 
+                   ["sigmoid", "sigmoid", "sigmoid", "identity"],
                    ["leakyrelu", "leakyrelu","leakyrelu"]
                    ]
-    dropout_rate = [0.1]
+    dropout_rate = [0, 0.1, 0.5]
 
 
     parameters = {
@@ -345,8 +335,7 @@ def RegressorHyperParameterSearch(x,y):
         scoring="neg_root_mean_squared_error",
         verbose=4,
         return_train_score = True,
-        cv = 2,
-        n_jobs = 2
+        n_jobs = 4
         )
     
     result = gs.fit(x,y)
@@ -537,8 +526,6 @@ def graph_learning_rate():
     file_name = "graphs/LearningGraph"
     plt.savefig(file_name)
     plt.clf() # Clears the figure so the graphs don't overlap in the saved file
-
-
 
 #######################################################################
 #                       ** EXAMPLE MAIN **
