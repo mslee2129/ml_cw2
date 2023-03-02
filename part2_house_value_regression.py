@@ -13,7 +13,7 @@ class Regressor(BaseEstimator):
     def __init__(self, x, 
                 nb_epoch = 100, 
                 neurons = [20,20,1], 
-                activations = ["sigmoid", "sigmoid", "identity"],
+                activations = ["relu", "relu", "identity"],
                 batch_size = 32, 
                 learning_rate = 0.01,
                 shuffle_flag = True,
@@ -417,7 +417,7 @@ def overfitting_analysis():
             dropout_test_errors, no_dropout_test_errors)
 
 
-def graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, 
+def graph_epochs(epochs, dropout_eval_errors, no_dropout_eval_errors, 
              dropout_test_errors, no_dropout_test_errors):
     plt.figure(figsize=(8,6))
     plt.plot(epochs, dropout_eval_errors, label='Eval RMSE')
@@ -443,9 +443,58 @@ def graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors,
 
 
 #######################################################################
-#                       ** END EPOCH / Start MAIN **
+#                       ** IMPACT OF LAYERS GRAPH **
 #######################################################################
+def graph_layers():
+    output_label = "median_house_value"
+    data = pd.read_csv("housing.csv") 
+    data = data.sample(frac=1).reset_index(drop=True)
+    x= data.loc[:, data.columns != output_label]
+    y = data.loc[:, [output_label]]
+    split_idx = int(0.8 * len(x))
+    x_train = x[:split_idx]
+    y_train = y[:split_idx]
+    x_test = x[split_idx:]
+    y_test = y[split_idx:]
 
+    epochs = []
+    results = []
+    for num_layers in range(1, 11, 2):
+        results.append([])
+        
+        print("Layer:", num_layers + 1)
+
+        for epoch in range(100, 1001, 100):
+            print("-- Epoch:", epoch)
+            if num_layers == 1: # i only want to do this once
+                epochs.append(epoch)
+            
+            in_neurons = ([20] * num_layers)
+            in_neurons.append(1)
+            in_activations = (["relu"] * num_layers)
+            in_activations.append("identity")
+
+            reg = Regressor(x=x, nb_epoch=epoch, neurons=in_neurons, activations=in_activations)
+
+            reg.fit(x_train, y_train)
+            results[-1].append(reg.score(x_test,y_test))
+
+
+    plt.figure(figsize=(8,6))
+    for index in range(len(results)):
+        plt.plot(epochs, results[index], label=(str(index + 1)+' layer'))
+
+    plt.title("RMSE per epoch for different number of layers")
+    plt.xlabel("Epochs")
+    plt.ylabel("RMSE loss on test set")
+    plt.legend()
+    file_name = "graphs/LayerGraph"
+    plt.savefig(file_name)
+    plt.clf() # Clears the figure so the graphs don't overlap in the saved file
+
+#######################################################################
+#                       ** EXAMPLE MAIN **
+#######################################################################
 def example_main():
 
     output_label = "median_house_value"
@@ -477,16 +526,5 @@ def example_main():
 
 
 if __name__ == "__main__":
-    example_main()
-    #example_main()
-
-    # epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
-
-    # print("no_dropout_eval_errors", no_dropout_eval_errors)
-    # print("dropout_eval_errors",dropout_eval_errors)
+    graph_layers()
     
-    # print("no_dropout_test_errors", no_dropout_test_errors)
-    # print("dropout_test_errors", dropout_test_errors)
-    
-
-    # graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
