@@ -315,7 +315,7 @@ def RegressorHyperParameterSearch(x,y):
                    ["sigmoid", "sigmoid", "sigmoid", "identity"],
                    ["leakyrelu", "leakyrelu","leakyrelu"]
                    ]
-    dropout_rate = [0, 0.1, 0.5]
+    dropout_rate = [0]
 
 
     parameters = {
