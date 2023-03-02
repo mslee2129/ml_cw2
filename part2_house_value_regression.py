@@ -2,17 +2,27 @@ import pickle
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error
 import part1_nn_lib as nn
 from sklearn.model_selection import GridSearchCV
 from sklearn.base import BaseEstimator
 import matplotlib.pyplot as plt
 
 class Regressor(BaseEstimator):
+    
+    def __init__(self, 
+                 x, 
+                 nb_epoch = 100, 
+                 neurons = [20,20,1], 
+                 activations = ["sigmoid", "sigmoid", "identity"], 
+                 batch_size = 32, 
+                 learning_rate = 0.01, 
+                 shuffle_flag = True, 
+                 dropout_rate = 0, 
+                 loss_fun = "mse", 
+                 upperBound = 1.0, 
+                 lowerBound = 0.0):
 
-    def __init__(self, x, nb_epoch = 500, neurons = [50,50,25,1], activations=["relu", "relu", "relu", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True, dropout_rate=0.3):
-        # You can add any input parameters you need
-        # Remember to set them with a default value for LabTS tests
         """ 
         Initialise the model.
           
@@ -32,36 +42,43 @@ class Regressor(BaseEstimator):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        # Setting attributes
+        self.x = x
+        self.activations = activations
+        self.nb_epoch = nb_epoch
+        self.neurons = neurons 
+        self.activations = activations
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.shuffle_flag = shuffle_flag
+        self.dropout_rate = dropout_rate
+        self.loss_fun = loss_fun
+        
         # Preprocessing attributes
         self.minValuesX = []
         self.maxValuesX = []
         self.minValuesY = []
         self.maxValuesY = []
-        self.upperBound = 1.0
-        self.lowerBound = 0.0
+        self.upperBound = upperBound
+        self.lowerBound = lowerBound
 
-        self.x = x
-        # Setting up necessary attributes
-        self.input_size = self.x.shape[1]+4
-        self.nb_epoch = nb_epoch 
-        self.neurons = neurons
-        self.activations = activations
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self.shuffle_flag= shuffle_flag
-        self.dropout_rate = dropout_rate
-        
+        # Preprocessing data for dimensions
+        pre_x = x
+        pre_x, _= self._preprocessor(pre_x, training = True)
+        self.input_size = pre_x.shape[1]
+
         # Initialize Neural Network
-        net = nn.MultiLayerNetwork(self.input_size, self.neurons, self.activations, dropout_rate=self.dropout_rate)
+        self.net = nn.MultiLayerNetwork(self.input_size, self.neurons, 
+                                        self.activations, self.dropout_rate)
 
         # Initialize Trainer
         self.network = nn.Trainer(
-            network=net,
-            batch_size=self.batch_size,
-            nb_epoch=self.nb_epoch,
-            learning_rate=self.learning_rate,
-            loss_fun="mse",
-            shuffle_flag=True,
+            network = self.net,
+            batch_size = self.batch_size,
+            nb_epoch = self.nb_epoch,
+            learning_rate = self.learning_rate,
+            loss_fun = self.loss_fun,
+            shuffle_flag = self.shuffle_flag,
         )
 
         #######################################################################
@@ -93,24 +110,17 @@ class Regressor(BaseEstimator):
 
         # PREPROCESSING Y
         if y is not None:
+            # Check if some Y values are missing, if so remove the whole line
+            drop_index = y[y['median_house_value'].isna()].index.tolist()
+            y = y.drop(index=drop_index)
+            x = x.drop(index=drop_index)
+
             # Calculate preprocessing values of Y, if not None
             y = (np.array(y)).astype(float)
             self.minValuesY = np.min(y, axis=0)
             self.maxValuesY = np.max(y, axis=0)
             y = self.lowerBound + ((y - self.minValuesY) * (self.upperBound - self.lowerBound) / (self.maxValuesY - self.minValuesY))
         
-        # if y is not None:
-        #     # Check if some Y values are missing, if so remove the whole line
-        #     # Get the index values of all the Y rows with empty values
-        #     drop_index = y[y.isna()].index.tolist()
-
-        #     # Drop them from Y
-        #     y = y.drop(drop_index, axis = 0)
-        #     # Drop them from X
-        #     x = x.drop(drop_index, axis = 0)
-
-# TO DO, DO NOT HARD CODE THE NAME OF THE COLUMNS BELOW
-
         # DEALING WITH CATEGORICAL VARIABLES
         binarised_ocean_proximity = pd.DataFrame(
             preprocessing.label_binarize(
@@ -124,13 +134,7 @@ class Regressor(BaseEstimator):
         x.reset_index(drop=True, inplace=True)
         x = pd.concat([x, binarised_ocean_proximity], axis=1) # adding the 5 dummy columns
 
-        #REPORT
-        # REMOVING NA VALUES FROM X 
-        # print("Mean of total bedrooms", sum(x['total_bedrooms'] == x['total_bedrooms'].mean()))
-        #print(x.isna().sum()) 
         x = x.fillna(x.mean())
-        # print(x.isna().sum()) 
-        #print("Mean of total bedrooms", sum(x['total_bedrooms'] == x['total_bedrooms'].mean()))
 
         # IF TESTING, USE STORED PREPROCESSED ATTRIBUTES FOR X
         if not training:
@@ -139,8 +143,7 @@ class Regressor(BaseEstimator):
 
             return (x, y)
 
-        # IF TRAINING
-        # PREPROCESSING X
+        # IF TRAINING PREPROCESS X
         x = (np.array(x)).astype(float)
         self.minValuesX = np.min(x[:,:-5], axis=0)
         self.maxValuesX = np.max(x[:,:-5], axis=0)
@@ -196,14 +199,10 @@ class Regressor(BaseEstimator):
         #                       ** START OF YOUR CODE **
         #######################################################################
         X, _ = self._preprocessor(x, training = False)
-        # print("\n X after preprocessing", X[-100:,-5:])
-        # print("Same as above, this time number of NA:", np.sum(np.isnan(X)))
 
         norm_pred = self.network.network(X).squeeze()
-        # print("\n pre unnormalise: ", norm_pred)
-        
         predictedValues = self.minValuesY + ((norm_pred - self.lowerBound) * (self.maxValuesY - self.minValuesY)) / (self.upperBound - self.lowerBound)
-        # print("\n Predicted Values once unnormalised", predictedValues)
+
         return predictedValues
 
         #######################################################################
@@ -229,7 +228,7 @@ class Regressor(BaseEstimator):
         #######################################################################    
         y = (np.array(y)).astype(float).squeeze()
         predictions = self.predict(x)
-        # print (y)
+
         rmse = np.sqrt(mean_squared_error(y, predictions))
 
 
@@ -302,7 +301,7 @@ def RegressorHyperParameterSearch(x,y):
                    ["relu", "sigmoid", "relu", "identity"],
                    ["leakyrelu", "leakyrelu","leakyrelu"]
                    ]
-    dropout_rate = [0.1, 0.2, 0.5]
+    dropout_rate = [0, 0.1, 0.2, 0.5]
 
     parameters = {
         "nb_epoch" : nb_epoch,
@@ -321,7 +320,7 @@ def RegressorHyperParameterSearch(x,y):
         scoring="neg_root_mean_squared_error",
         verbose=4,
         return_train_score = True,
-        cv = 2
+        nb_jobs = 4
         )
     
     result = gs.fit(x,y)
@@ -329,8 +328,8 @@ def RegressorHyperParameterSearch(x,y):
     df = pd.DataFrame(result.cv_results_)
     df.to_csv('gridResults.csv')
 
-    # print("\nIt has score (on cross-validation):", result.best_score_)
-    # print("\nIt has parameters :", result.best_params_)
+    print("\nIt has score (on cross-validation):", result.best_score_)
+    print("\nIt has parameters :", result.best_params_)
 
     return result.best_estimator_ #returning the best model
 
@@ -414,9 +413,106 @@ def graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_e
     plt.savefig(file_name)
     plt.clf() # Clears the figure so the graphs don't overlap in the saved file
 
+#######################################################################
+#                       * IMPACT OF LAYERS GRAPH *
+#######################################################################
+def graph_layers():
+    output_label = "median_house_value"
+    data = pd.read_csv("housing.csv") 
+    data = data.sample(frac=1).reset_index(drop=True)
+    x= data.loc[:, data.columns != output_label]
+    y = data.loc[:, [output_label]]
+    split_idx = int(0.8 * len(x))
+    x_train = x[:split_idx]
+    y_train = y[:split_idx]
+    x_test = x[split_idx:]
+    y_test = y[split_idx:]
+
+    epochs = []
+    results = []
+    for num_layers in range(1, 11, 2):
+        results.append([])
+        
+        print("Layer:", num_layers + 1)
+
+        for epoch in range(100, 1001, 100):
+            print("-- Epoch:", epoch)
+            if num_layers == 1: # i only want to do this once
+                epochs.append(epoch)
+            
+            in_neurons = ([20] * num_layers)
+            in_neurons.append(1)
+            in_activations = (["relu"] * num_layers)
+            in_activations.append("identity")
+
+            reg = Regressor(x=x, nb_epoch=epoch, neurons=in_neurons, activations=in_activations)
+
+            reg.fit(x_train, y_train)
+            results[-1].append(reg.score(x_test,y_test))
+
+
+    plt.figure(figsize=(8,6))
+    for index in range(len(results)):
+        plt.plot(epochs, results[index], label=(str(index + 1)+' layer'))
+
+    plt.title("RMSE per epoch for different number of layers")
+    plt.xlabel("Epochs")
+    plt.ylabel("RMSE loss on test set")
+    plt.legend()
+    file_name = "graphs/LayerGraph"
+    plt.savefig(file_name)
+    plt.clf() # Clears the figure so the graphs don't overlap in the saved file
+
+
+def graph_learning_rate():
+    output_label = "median_house_value"
+    data = pd.read_csv("housing.csv") 
+    data = data.sample(frac=1).reset_index(drop=True)
+    x= data.loc[:, data.columns != output_label]
+    y = data.loc[:, [output_label]]
+    split_idx = int(0.8 * len(x))
+    x_train = x[:split_idx]
+    y_train = y[:split_idx]
+    x_test = x[split_idx:]
+    y_test = y[split_idx:]
+
+    epochs = []
+    results = []
+    rate = []
+    for ten_lr in range(1, 6, 1):
+        results.append([])
+        learning_rate = ten_lr / 10
+        rate.append(learning_rate)
+        
+        print("Learning rate:", learning_rate)
+
+        for epoch in range(100, 1001, 100):
+            print("-- Epoch:", epoch)
+            if ten_lr == 1: # i only want to do this once
+                epochs.append(epoch)
+
+            reg = Regressor(x=x, nb_epoch=epoch, learning_rate=learning_rate)
+
+            reg.fit(x_train, y_train)
+            results[-1].append(reg.score(x_test,y_test))
+
+
+    plt.figure(figsize=(8,6))
+    for index in range(len(results)):
+        plt.plot(epochs, results[index], label=(str(rate[index])+' learning rate'))
+
+    plt.title("RMSE per epoch for different values of learning rate")
+    plt.xlabel("Epochs")
+    plt.ylabel("RMSE loss on test set")
+    plt.legend()
+    file_name = "graphs/LearningGraph"
+    plt.savefig(file_name)
+    plt.clf() # Clears the figure so the graphs don't overlap in the saved file
+
+
 
 #######################################################################
-#                       ** END EPOCH / Start MAIN **
+#                       **  MAIN **
 #######################################################################
 
 def dummy_main():
@@ -441,12 +537,12 @@ def dummy_main():
 
     regressor = Regressor(x_train)
     regressor.fit(x_train, y_train)
-    save_regressor(regressor)
+    # save_regressor(regressor)
 
-    reg = load_regressor()
+    # reg = load_regressor()
 
     # # Error
-    error = reg.score(x_test,y_test)
+    error = regressor.score(x_test,y_test)
     print("\nRegressor error: {}\n".format(error))
 
 def example_main():

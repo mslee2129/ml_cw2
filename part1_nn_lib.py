@@ -345,7 +345,6 @@ class LinearLayer(Layer):
         
         # Store x as it is needed for dLoss/dW
         self._cache_current = x 
-        # print("_cach_current at forward linear: ", self._cache_current) 
 
         return np.matmul(x, self._W) + self._b
 
@@ -410,12 +409,10 @@ class DropoutLayer(Layer):
         self._mask = None
     
     def forward(self, x, testing=True): # when testing we do not perform dropout
-        # print("forward dropout before dropout: ", x)
         if not testing:
             # upscale as part of the inverted dropout technique
             self._mask = np.random.binomial(1, 1 - self._dropout_rate, size=x.shape) / (1 - self._dropout_rate)
             x *= self._mask
-        # print("forward dropout after dropout: ", x)
         return x
     
     def backward(self, grad_z):
@@ -460,7 +457,7 @@ class MultiLayerNetwork(object):
                 # All other linear layers are created with num_neurons from previous and next
                 self._layers.append(LinearLayer(neurons[i-1], neurons[i]))
 
-            # Add Dropout layer after each Linear Layer
+            # Add Dropout layer after each Linear Layer if dropout layer has been instanciated
             if i < len(neurons)-1 and self._dropout_rate is not None:
                 self._layers.append(DropoutLayer(dropout_rate))     
 
@@ -529,7 +526,6 @@ class MultiLayerNetwork(object):
         #######################################################################
         for layer in reversed(self._layers):
             grad_z = layer.backward(grad_z)
-            # print("\n BACKWARD \n", grad_z)
         
         return grad_z
 
@@ -687,10 +683,6 @@ class Trainer(object):
 
                 # Backpropagation
                 grad_z = self._loss_layer.backward()
-                # print("\n############################################### \n ")
-                # print("START OF BACKPROPAGATION WITH INTITAL GRAD Z: \n ", grad_z)
-                # print("\n FIRST GRAD Z:\n",np.count_nonzero(np.isnan(grad_z)))
-                # print("\n############################################### \n ")
                 self.network.backward(grad_z)
                 self.network.update_params(self.learning_rate)
 
@@ -717,9 +709,8 @@ class Trainer(object):
         #######################################################################
         # Forward Pass
         output = self.network.forward(input_dataset, testing=False)
-        
-        
         loss = self._loss_layer.forward(output, target_dataset)
+
         return loss
 
         #######################################################################
@@ -747,13 +738,8 @@ class Preprocessor(object):
         #######################################################################
         self.lowerBound = 0
         self.upperBound = 1
-        self.dataMax = []
-        self.dataMin = []
-
-        #getting the maximum and minimum value for each column
-        for col_index in range(np.shape(data)[1]):
-            self.dataMax.append(data[:,col_index].max()) 
-            self.dataMin.append(data[:,col_index].min())
+        self.dataMin = np.min(data, axis=0)
+        self.dataMax = np.max(data, axis=0)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -772,12 +758,8 @@ class Preprocessor(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-
-        # normalise column by column
-        for col_index in range(np.shape(data)[1]):
-            data[:,col_index] = self.lowerBound + ((data[:,col_index] - self.dataMin[col_index]) * (self.upperBound - self.lowerBound)) / (self.dataMax[col_index] - self.dataMin[col_index])
-        
-        # TO DO : UPGRADE CODE: x = self.lowerBound + ((x - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
+        data = self.lowerBound + ((data - self.dataMin) * (self.upperBound - self.lowerBound)
+                                   / (self.dataMax - self.dataMin))
         
         return data
         #######################################################################
@@ -797,9 +779,8 @@ class Preprocessor(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        # normalise column by column
-        for col_index in range(np.shape(data)[1]):
-            data[:,col_index] = self.dataMin[col_index] + ((data[:,col_index] - self.lowerBound) * (self.dataMax[col_index] - self.dataMin[col_index])) / (self.upperBound - self.lowerBound)
+        data = self.dataMin + ((data - self.lowerBound) * (self.dataMax - self.dataMin)
+                                / (self.upperBound - self.lowerBound))
 
         return data
 
