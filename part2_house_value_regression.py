@@ -492,6 +492,54 @@ def graph_layers():
     plt.savefig(file_name)
     plt.clf() # Clears the figure so the graphs don't overlap in the saved file
 
+
+def graph_learning_rate():
+    output_label = "median_house_value"
+    data = pd.read_csv("housing.csv") 
+    data = data.sample(frac=1).reset_index(drop=True)
+    x= data.loc[:, data.columns != output_label]
+    y = data.loc[:, [output_label]]
+    split_idx = int(0.8 * len(x))
+    x_train = x[:split_idx]
+    y_train = y[:split_idx]
+    x_test = x[split_idx:]
+    y_test = y[split_idx:]
+
+    epochs = []
+    results = []
+    rate = []
+    for ten_lr in range(1, 6, 1):
+        results.append([])
+        learning_rate = ten_lr / 10
+        rate.append(learning_rate)
+        
+        print("Learning rate:", learning_rate)
+
+        for epoch in range(100, 1001, 100):
+            print("-- Epoch:", epoch)
+            if ten_lr == 1: # i only want to do this once
+                epochs.append(epoch)
+
+            reg = Regressor(x=x, nb_epoch=epoch, learning_rate=learning_rate)
+
+            reg.fit(x_train, y_train)
+            results[-1].append(reg.score(x_test,y_test))
+
+
+    plt.figure(figsize=(8,6))
+    for index in range(len(results)):
+        plt.plot(epochs, results[index], label=(str(rate[index])+' learning rate'))
+
+    plt.title("RMSE per epoch for different values of learning rate")
+    plt.xlabel("Epochs")
+    plt.ylabel("RMSE loss on test set")
+    plt.legend()
+    file_name = "graphs/LearningGraph"
+    plt.savefig(file_name)
+    plt.clf() # Clears the figure so the graphs don't overlap in the saved file
+
+
+
 #######################################################################
 #                       ** EXAMPLE MAIN **
 #######################################################################
