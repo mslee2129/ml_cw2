@@ -83,22 +83,12 @@ class CrossEntropyLossLayer(Layer):
         probs = self.softmax(inputs)
         self._cache_current = y_target, probs
 
-        # # Change made for Part 2
-        # epsilon = 1e-8
-        # probs = np.clip(probs, epsilon, 1 - epsilon)
-        # # End of change made for Part 2
-
         out = -1 / n_obs * np.sum(y_target * np.log(probs))
         return out
 
     def backward(self):
         y_target, probs = self._cache_current
         n_obs = len(y_target)
-
-        # # Change made for Part 2
-        # epsilon = 1e-8
-        # probs = np.clip(probs, epsilon, 1 - epsilon)
-        # # End of change made for Part 2
 
         return -1 / n_obs * (y_target - probs)
 
@@ -114,7 +104,7 @@ class SigmoidLayer(Layer):
         """
         self._cache_current = None
 
-    def forward(self, x): # x here is the output from a linear layer, so with Neural Network notation we think of this as Z which equals WX+B
+    def forward(self, x): 
         """ 
         Performs forward pass through the Sigmoid layer.
 
@@ -354,24 +344,8 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        # print("\n\n LAY LAY LAY IT DOWN: LINEAR LAYER \n\n")
-        # print("Weight", self._W)
         # Store x as it is needed for dLoss/dW
         self._cache_current = x 
-
-        # Batch x values such that we have a row per observation so x has shape (num observation, num neurons in previous layer)
-        # W has shape (num neurons in previous layer, num neurons in curr layer)
-        # to line up these values for matrix multiplication, we need to have 
-        # print("\n----------------- LINEAR LAYER -----------------\n")
-        # print("\n----------------- DATA -----------------\n")
-        # print(x)
-        # print("\n----------------- WEIGHTS -----------------\n")
-        # print(self._W)
-        # print("\n----------------- DATA NA COUNT -----------------\n")    
-        # print("\n DATA NA COUNT:\n",np.count_nonzero(np.isnan(x)))
-        # print("\n----------------- WEIGHT NA COUNT -----------------\n")  
-        # print("\n WEIGHTS IN LINEAR:\n",np.count_nonzero(np.isnan(self._W)))
-        # print("\n----------------- END LINEAR LAYER -----------------\n")  
 
         return np.matmul(x, self._W) + self._b
 
@@ -404,14 +378,6 @@ class LinearLayer(Layer):
         # dLoss/dW
         self._grad_W_current = np.matmul(self._cache_current.T, grad_z)
         
-        # print("\n----------------- BACKPROPAGATION - GRAD W OF LINEAR -----------------\n")
-        # print("\n GRAD Z:\n",grad_z)
-        # print("\n GRAD Z NA:\n",np.count_nonzero(np.isnan(grad_z)))
-        # print("\n CACHED\n", self._cache_current.T)
-        # print("\n CACHED NA:\n",np.count_nonzero(np.isnan(self._cache_current)))
-        # print("\n GRAD W\n", self._grad_W_current)
-        # print("\n----------------- END GRAD W OF LINEAR -----------------\n")
-        
         # dLoss/db
         self._grad_b_current = np.matmul(np.ones((len(grad_z),1)).T, grad_z)
 
@@ -432,19 +398,7 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        # print("\n----------------- LINEAR LAYER -----------------\n")
-        # print("\n----------------- UPDATING PARAMETERS -----------------\n")
-        # print("\n----------------- BEFORE UPDATE PARAMETERS - WEIGHT -----------------\n")
-        # print(self._W)
-        # print("\n----------------- BEFORE UPDATE PARAMETERS - GRAD W -----------------\n")
-        # print(self._grad_W_current)
-        # print("\n----------------- LEARNING RATE -----------------\n")
-        # print(learning_rate)
-        # print("\n----------------- AFTER UPDATE PARAMETERS -----------------\n")
         self._W -= learning_rate*(self._grad_W_current)
-        # print(self._W)
-
-
         self._b -= learning_rate*(self._grad_b_current)
 
         #######################################################################
@@ -703,7 +657,6 @@ class Trainer(object):
         num_minibatch = np.ceil(np.shape(input_dataset)[0] / self.batch_size)
     
         for epoch in range(self.nb_epoch):
-            # print("\n\nHEY JASON, I AM EPOCH NUMBER:", epoch,"\n\n")
             if(self.shuffle_flag): # Shuffle if shuffle_flag true
                 input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
 
@@ -719,10 +672,6 @@ class Trainer(object):
 
                 # Backpropagation
                 grad_z = self._loss_layer.backward()
-                # print("\n############################################### \n ")
-                # print("START OF BACKPROPAGATION WITH INTITAL GRAD Z: \n ", grad_z)
-                # print("\n FIRST GRAD Z:\n",np.count_nonzero(np.isnan(grad_z)))
-                # print("\n############################################### \n ")
                 self.network.backward(grad_z)
                 self.network.update_params(self.learning_rate)
 
@@ -779,14 +728,8 @@ class Preprocessor(object):
         #######################################################################
         self.lowerBound = 0
         self.upperBound = 1
-        self.dataMax = []
-        self.dataMin = []
-
-        #getting the maximum and minimum value for each column
-        for col_index in range(np.shape(data)[1]):
-            self.dataMax.append(data[:,col_index].max()) 
-            self.dataMin.append(data[:,col_index].min())
-
+        self.dataMin = np.min(data, axis=0)
+        self.dataMax = np.max(data, axis=0)
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
@@ -803,14 +746,8 @@ class Preprocessor(object):
         """
         #######################################################################
         #                       ** START OF YOUR CODE **
-        #######################################################################
-
-        # normalise column by column
-        for col_index in range(np.shape(data)[1]):
-            data[:,col_index] = self.lowerBound + ((data[:,col_index] - self.dataMin[col_index]) * (self.upperBound - self.lowerBound)) / (self.dataMax[col_index] - self.dataMin[col_index])
-        
-        # TO DO : UPGRADE CODE: x = self.lowerBound + ((x - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
-        
+        #######################################################################  
+        data = self.lowerBound + ((data - self.dataMin) * (self.upperBound - self.lowerBound) / (self.dataMax - self.dataMin))
         return data
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -829,10 +766,7 @@ class Preprocessor(object):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        # normalise column by column
-        for col_index in range(np.shape(data)[1]):
-            data[:,col_index] = self.dataMin[col_index] + ((data[:,col_index] - self.lowerBound) * (self.dataMax[col_index] - self.dataMin[col_index])) / (self.upperBound - self.lowerBound)
-
+        data = self.dataMin + ((data - self.lowerBound) * (self.dataMax - self.dataMin) / (self.upperBound - self.lowerBound))
         return data
 
         #######################################################################
