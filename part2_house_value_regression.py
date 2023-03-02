@@ -12,10 +12,10 @@ import matplotlib.pyplot as plt
 class Regressor(BaseEstimator):
     def __init__(self, x, 
                 nb_epoch = 100, 
-                neurons = [20,20,1], 
-                activations = ["relu", "relu", "identity"],
+                neurons = [30,30,15,1], 
+                activations = ["relu", "relu", "relu", "identity"],
                 batch_size = 32, 
-                learning_rate = 0.01,
+                learning_rate = 0.05,
                 shuffle_flag = True,
                 dropout_rate = 0,
                 loss_fun = "mse",
@@ -208,7 +208,7 @@ class Regressor(BaseEstimator):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        X, _ = self._preprocessor(x, y, training = False)
+        X, _ = self._preprocessor(x, training = False)
 
         normalised_pred = self.network.network(X, True).squeeze()
         
@@ -242,7 +242,7 @@ class Regressor(BaseEstimator):
         #######################################################################    
         _, Y = self._preprocessor(x, y, training = False)
         
-        predictions = self.predict(x, y)
+        predictions = self.predict(x)
     
         rmse = np.sqrt(mean_squared_error(Y, predictions))
 
@@ -551,15 +551,14 @@ def example_main():
     x_test = x[split_idx:]
     y_test = y[split_idx:]
 
-    save_regressor(RegressorHyperParameterSearch(x_train, y_train))
-
-    reg = load_regressor()
+    reg = Regressor(x_train)
+    reg.fit(x_train, y_train)
+    #save_regressor(RegressorHyperParameterSearch(x_train, y_train))
+    #reg = load_regressor()
 
     # # Error
     error = reg.score(x_test,y_test)
     print("\nRegressor error: {}\n".format(error))
 
-
 if __name__ == "__main__":
-    graph_layers()
-    
+    example_main()
