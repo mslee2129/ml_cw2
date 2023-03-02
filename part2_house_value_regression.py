@@ -10,7 +10,7 @@ from sklearn.base import BaseEstimator
 
 class Regressor(BaseEstimator):
 
-    def __init__(self, x, nb_epoch = 100, neurons = [20,1], activations=["sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True):
+    def __init__(self, x, nb_epoch = 100, neurons = [20,1], activations=["sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True, dropout_rate=0):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -49,9 +49,10 @@ class Regressor(BaseEstimator):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.shuffle_flag= shuffle_flag
+        self.dropout_rate = dropout_rate
         
         # Initialize Neural Network
-        net = nn.MultiLayerNetwork(self.input_size, self.neurons, self.activations)
+        net = nn.MultiLayerNetwork(self.input_size, self.neurons, self.activations, dropout_rate=self.dropout_rate)
 
         # Initialize Trainer
         self.network = nn.Trainer(
@@ -196,7 +197,7 @@ class Regressor(BaseEstimator):
         # print("\n X after preprocessing", X[-100:,-5:])
         # print("Same as above, this time number of NA:", np.sum(np.isnan(X)))
 
-        norm_pred = self.network.network(X).squeeze()
+        norm_pred = self.network.network(X, True).squeeze()
         # print("\n pre unnormalise: ", norm_pred)
         
         predictedValues = self.minValuesY + ((norm_pred - self.lowerBound) * (self.maxValuesY - self.minValuesY)) / (self.upperBound - self.lowerBound)
@@ -298,8 +299,9 @@ def RegressorHyperParameterSearch(x,y):
     nb_epoch = [50]
     neurons = [[20,10,5,1]]
     batch_size = [32]
-    learning_rate = [0.01, 0.05]
+    learning_rate = [0.01]
     activations = [["relu","relu","relu", "identity"]]
+    dropout_rate = [0.1]
     
     param_grid = {
         "nb_epoch" : nb_epoch,
@@ -307,6 +309,7 @@ def RegressorHyperParameterSearch(x,y):
         "batch_size": batch_size,
         "learning_rate" : learning_rate,
         "activations" : activations,
+        "dropout_rate" : dropout_rate
     }
     
     regressor = Regressor(x)

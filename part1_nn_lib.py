@@ -268,6 +268,8 @@ class LinearLayer(Layer):
         self._cache_current = None
         self._grad_W_current = None
         self._grad_b_current = None
+        self.dropout_rate = 0
+        self.dropout_mask_cache = None
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -314,7 +316,7 @@ class LinearLayer(Layer):
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-    def backward(self, grad_z):
+    def backward(self, grad_z, testing = False):
         """
         Given `grad_z`, the gradient of some scalar (e.g. loss) with respect to
         the output of this layer, performs back pass through the layer (i.e.
@@ -331,6 +333,10 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+
+        # Apply this layer's dropout to upstream grad
+        if self.dropout_mask_cache is not None:
+            grad_z *= self.dropout_mask_cache / (1 - self.dropout_rate)
         
         # dLoss/dW
         self._grad_W_current = np.matmul(self._cache_current.T, grad_z)
@@ -389,7 +395,7 @@ class MultiLayerNetwork(object):
     activation functions.
     """
 
-    def __init__(self, input_dim, neurons, activations):
+    def __init__(self, input_dim, neurons, activations, dropout_rate=0):
         """
         Constructor of the multi layer network.
 
@@ -405,6 +411,7 @@ class MultiLayerNetwork(object):
         self.input_dim = input_dim
         self.neurons = neurons
         self.activations = activations
+        self.dropout_rate = dropout_rate
 
         #######################################################################
         #                       ** START OF YOUR CODE **
@@ -435,7 +442,7 @@ class MultiLayerNetwork(object):
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-    def forward(self, x):
+    def forward(self, x, testing=False):
         """
         Performs forward pass through the network.
 
@@ -451,17 +458,25 @@ class MultiLayerNetwork(object):
         #######################################################################
         # Loop through your layers, to go from first to last
         # Call the forward attribute of each, by giving the result of the previous layer into the next one
-        for layer in self._layers:
+        # If we are not training, the dropout rate is automatically set to zero
+        for layer in self._layers: 
             x = layer.forward(x)
-
+            if isinstance(layer, LinearLayer) and not testing:
+                mask = np.random.binomial(1, 1 - self.dropout_rate, size=x.shape)
+                x *= mask / (1 - self.dropout_rate) # upscale as part of the inverted dropout technique
+                layer.dropout_mask_cache = mask # save mask to cache of layer for use in backpropagation
+                layer.dropout_rate = self.dropout_rate
+            else:
+                layer.dropout_mask_cache = None
+                layer.dropout_rate = None
         return x
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-    def __call__(self, x):
-        return self.forward(x)
+    def __call__(self, x, testing=False):
+        return self.forward(x, testing)
 
     def backward(self, grad_z):
         """
