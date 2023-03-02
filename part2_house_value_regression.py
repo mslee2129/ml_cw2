@@ -560,4 +560,5 @@ def example_main():
     print("\nRegressor error: {}\n".format(error))
 
 if __name__ == "__main__":
-    example_main()
+    graph_layers()
+	graph_learning_rate()
