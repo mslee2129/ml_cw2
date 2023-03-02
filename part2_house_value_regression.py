@@ -12,15 +12,15 @@ import matplotlib.pyplot as plt
 class Regressor(BaseEstimator):
     def __init__(self, x, 
                 nb_epoch = 100, 
-                neurons = [30,30,15,1], 
-                activations = ["relu", "relu", "relu", "identity"],
+                neurons = [20,20,1], 
+                activations = ["sigmoid", "sigmoid", "identity"],
                 batch_size = 32, 
-                learning_rate = 0.05,
+                learning_rate = 0.01,
                 shuffle_flag = True,
                 dropout_rate = 0,
                 loss_fun = "mse",
-                upperBound = 1,
-                lowerBound = 0):
+                upperBound = 1.0,
+                lowerBound = 0.0):
         """ 
         Initialise the model.
           
@@ -240,11 +240,10 @@ class Regressor(BaseEstimator):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################    
-        _, Y = self._preprocessor(x, y, training = False)
-        
+        y = (np.array(y)).astype(float).squeeze()
         predictions = self.predict(x)
     
-        rmse = np.sqrt(mean_squared_error(Y, predictions))
+        rmse = np.sqrt(mean_squared_error(y, predictions))
 
 
         # print("\n|------------- MODEL PERFORMANCE -------------|")
