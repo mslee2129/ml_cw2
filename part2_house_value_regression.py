@@ -13,8 +13,8 @@ class Regressor(BaseEstimator):
     def __init__(self, 
                  x, 
                  nb_epoch = 100, 
-                 neurons = [20,20,1], 
-                 activations = ["sigmoid", "sigmoid", "identity"], 
+                 neurons = [20,20,1],
+                 activations = ["relu", "relu", "identity"],
                  batch_size = 32, 
                  learning_rate = 0.01, 
                  shuffle_flag = True, 
@@ -301,7 +301,7 @@ def RegressorHyperParameterSearch(x,y):
                    ["relu", "sigmoid", "relu", "identity"],
                    ["leakyrelu", "leakyrelu","leakyrelu"]
                    ]
-    dropout_rate = [0, 0.1, 0.2, 0.5]
+    dropout_rate = [0, 0.1, 0.3, 0.5]
 
     parameters = {
         "nb_epoch" : nb_epoch,
@@ -320,7 +320,7 @@ def RegressorHyperParameterSearch(x,y):
         scoring="neg_root_mean_squared_error",
         verbose=4,
         return_train_score = True,
-        nb_jobs = 4
+        n_jobs = 4
         )
     
     result = gs.fit(x,y)
@@ -396,9 +396,9 @@ def graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_e
     plt.plot(epochs, dropout_test_errors, label='Test RMSE')
     plt.title("RMSE per epoch for eval")
     plt.xlabel("Epochs")
-    plt.ylabel("RMSE Loss")
+    plt.ylabel("RMSE")
     plt.legend()
-    file_name = "graphs/Eval"
+    file_name = "graphs/WithDropout"
     plt.savefig(file_name)
     plt.clf() # Clears the figure so the graphs don't overlap in the saved file
 
@@ -407,9 +407,9 @@ def graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_e
     plt.plot(epochs, no_dropout_test_errors, label='Test RMSE')
     plt.title("RMSE per epoch for test")
     plt.xlabel("Epochs")
-    plt.ylabel("RMSE Loss")
+    plt.ylabel("RMSE")
     plt.legend()
-    file_name = "graphs/Test"
+    file_name = "graphs/NoDropout"
     plt.savefig(file_name)
     plt.clf() # Clears the figure so the graphs don't overlap in the saved file
 
@@ -453,16 +453,20 @@ def graph_layers():
 
     plt.figure(figsize=(8,6))
     for index in range(len(results)):
-        plt.plot(epochs, results[index], label=(str(index + 1)+' layer'))
+        plt.plot(epochs, results[index], label=('Num layers: '+str(index + 1)))
 
-    plt.title("RMSE per epoch for different number of layers")
+    plt.title("RMSE per epoch for a different number of layers")
     plt.xlabel("Epochs")
-    plt.ylabel("RMSE loss on test set")
+    plt.ylabel("RMSE")
     plt.legend()
-    file_name = "graphs/LayerGraph"
+    file_name = "graphs/Layers"
     plt.savefig(file_name)
     plt.clf() # Clears the figure so the graphs don't overlap in the saved file
 
+
+#######################################################################
+#                       * IMPACT OF LEARNING RATE GRAPH *
+#######################################################################
 
 def graph_learning_rate():
     output_label = "median_house_value"
@@ -486,7 +490,7 @@ def graph_learning_rate():
         
         print("Learning rate:", learning_rate)
 
-        for epoch in range(100, 1001, 100):
+        for epoch in range(50, 1001, 50):
             print("-- Epoch:", epoch)
             if ten_lr == 1: # i only want to do this once
                 epochs.append(epoch)
@@ -499,51 +503,167 @@ def graph_learning_rate():
 
     plt.figure(figsize=(8,6))
     for index in range(len(results)):
-        plt.plot(epochs, results[index], label=(str(rate[index])+' learning rate'))
+        plt.plot(epochs, results[index], label=('Learning rate:' + str(rate[index])))
 
-    plt.title("RMSE per epoch for different values of learning rate")
+    plt.title("RMSE per epoch for different learning rates")
     plt.xlabel("Epochs")
-    plt.ylabel("RMSE loss on test set")
+    plt.ylabel("RMSE")
     plt.legend()
-    file_name = "graphs/LearningGraph"
+    file_name = "graphs/LearningRate"
     plt.savefig(file_name)
     plt.clf() # Clears the figure so the graphs don't overlap in the saved file
 
 
 
 #######################################################################
-#                       **  MAIN **
+#                       * IMPACT OF BATCH SIZE *
 #######################################################################
 
-def dummy_main():
+def graph_batch_size():
     output_label = "median_house_value"
-
-    # Use pandas to read CSV data as it contains various object types
-    # Feel free to use another CSV reader tool
-    # But remember that LabTS tests take Pandas DataFrame as inputs
     data = pd.read_csv("housing.csv") 
     data = data.sample(frac=1).reset_index(drop=True)
-
-
-    # Splitting input and output
     x= data.loc[:, data.columns != output_label]
     y = data.loc[:, [output_label]]
-
     split_idx = int(0.8 * len(x))
     x_train = x[:split_idx]
     y_train = y[:split_idx]
     x_test = x[split_idx:]
     y_test = y[split_idx:]
 
-    regressor = Regressor(x_train)
-    regressor.fit(x_train, y_train)
-    # save_regressor(regressor)
+    epochs = []
+    results = []
+    batch_size = [32,64,124]
+    for batch in batch_size:
+        results.append([])
+        
+        print("Batch size:", batch)
 
-    # reg = load_regressor()
+        for epoch in range(50, 1001, 50):
+            print("-- Epoch:", epoch)
+            if batch == 32: # i only want to do this once
+                epochs.append(epoch)
 
-    # # Error
-    error = regressor.score(x_test,y_test)
-    print("\nRegressor error: {}\n".format(error))
+            reg = Regressor(x=x, nb_epoch=epoch, batch_size=batch_size)
+
+            reg.fit(x_train, y_train)
+            results[-1].append(reg.score(x_test,y_test))
+
+
+    plt.figure(figsize=(8,6))
+    for index in range(len(results)):
+        plt.plot(epochs, results[index], label=('Batch size:'+str(batch_size[index])))
+
+    plt.title("RMSE per epoch for different batch sizes")
+    plt.xlabel("Epochs")
+    plt.ylabel("RMSE")
+    plt.legend()
+    file_name = "graphs/BatchSize"
+    plt.savefig(file_name)
+    plt.clf() # Clears the figure so the graphs don't overlap in the saved file
+
+
+#######################################################################
+#                       * IMPACT OF Activation Function *
+#######################################################################
+
+def graph_activation_function():
+    output_label = "median_house_value"
+    data = pd.read_csv("housing.csv") 
+    data = data.sample(frac=1).reset_index(drop=True)
+    x= data.loc[:, data.columns != output_label]
+    y = data.loc[:, [output_label]]
+    split_idx = int(0.8 * len(x))
+    x_train = x[:split_idx]
+    y_train = y[:split_idx]
+    x_test = x[split_idx:]
+    y_test = y[split_idx:]
+
+    epochs = []
+    results = []
+    activations = [["relu"],["sigmoid"]]
+    for activation in activations:
+        results.append([])
+        print("Activation:", activation)
+
+        for epoch in range(50, 1001, 50):
+            print("-- Epoch:", epoch)
+            if activation == ["relu"]: # i only want to do this once
+                epochs.append(epoch)
+            
+            in_activations = activation * 2
+            in_activations.append("identity")
+
+            reg = Regressor(x=x, activations = in_activations)
+
+            reg.fit(x_train, y_train)
+            results[-1].append(reg.score(x_test,y_test))
+
+
+    plt.figure(figsize=(8,6))
+    for index in range(len(results)):
+        plt.plot(epochs, results[index], label=('Activation' + str(activations[index])))
+
+    plt.title("RMSE per epoch for different activation functions")
+    plt.xlabel("Epochs")
+    plt.ylabel("RMSE")
+    plt.legend()
+    file_name = "graphs/ActivationFunctions"
+    plt.savefig(file_name)
+    plt.clf() # Clears the figure so the graphs don't overlap in the saved file
+
+
+
+#######################################################################
+#                       * IMPACT OF Activation Function *
+#######################################################################
+
+def graph_dropout_values():
+    output_label = "median_house_value"
+    data = pd.read_csv("housing.csv") 
+    data = data.sample(frac=1).reset_index(drop=True)
+    x= data.loc[:, data.columns != output_label]
+    y = data.loc[:, [output_label]]
+    split_idx = int(0.8 * len(x))
+    x_train = x[:split_idx]
+    y_train = y[:split_idx]
+    x_test = x[split_idx:]
+    y_test = y[split_idx:]
+
+    epochs = []
+    results = []
+    values = [0, 0.1, 0.3, 0.5]
+
+    for dropout_value in values:
+        results.append([])
+        print("Dropout Value:", dropout_value)
+
+        for epoch in range(50, 1001, 50):
+            print("-- Epoch:", epoch)
+            if dropout_value == 0: # i only want to do this once
+                epochs.append(epoch)
+
+            reg = Regressor(x=x, dropout_rate = dropout_value)
+
+            reg.fit(x_train, y_train)
+            results[-1].append(reg.score(x_test,y_test))
+
+
+    plt.figure(figsize=(8,6))
+    for index in range(len(results)):
+        plt.plot(epochs, results[index], label=('Dropout Value' + str(values[index])))
+
+    plt.title("RMSE per epoch for different dropout values")
+    plt.xlabel("Epochs")
+    plt.ylabel("RMSE")
+    plt.legend()
+    file_name = "graphs/DropoutValues"
+    plt.savefig(file_name)
+    plt.clf() # Clears the figure so the graphs don't overlap in the saved file
+
+#######################################################################
+#                       **  MAIN **
+#######################################################################
 
 def example_main():
 
@@ -565,27 +685,30 @@ def example_main():
     y_train = y[:split_idx]
     x_test = x[split_idx:]
     y_test = y[split_idx:]
-
+    
     save_regressor(RegressorHyperParameterSearch(x_train, y_train))
 
-    reg = load_regressor()
+    regressor = load_regressor()
 
-    # # Error
-    error = reg.score(x_test,y_test)
+    # Error
+    error = regressor.score(x_test,y_test)
     print("\nRegressor error: {}\n".format(error))
 
-
 if __name__ == "__main__":
-    dummy_main()
-    #example_main()
+    # Computer 1
 
     # epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
-
-    # print("no_dropout_eval_errors", no_dropout_eval_errors)
-    # print("dropout_eval_errors",dropout_eval_errors)
-    
-    # print("no_dropout_test_errors", no_dropout_test_errors)
-    # print("dropout_test_errors", dropout_test_errors)
-    
-
     # graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
+
+    # graph_dropout_values()
+
+    # # Computer 2
+    # graph_learning_rate()
+    # graph_batch_size()
+
+    # # Computer 3
+    # graph_layers()
+    # graph_activation_function()
+
+    # Computer 4
+    # example_main()
