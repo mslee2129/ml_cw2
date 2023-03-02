@@ -428,7 +428,7 @@ class MultiLayerNetwork(object):
     activation functions.
     """
 
-    def __init__(self, input_dim, neurons, activations, dropout_rate=0):
+    def __init__(self, input_dim, neurons, activations, dropout_rate = None):
         """
         Constructor of the multi layer network.
 
@@ -461,7 +461,7 @@ class MultiLayerNetwork(object):
                 self._layers.append(LinearLayer(neurons[i-1], neurons[i]))
 
             # Add Dropout layer after each Linear Layer
-            if i < len(neurons)-1:
+            if i < len(neurons)-1 and self._dropout_rate is not None:
                 self._layers.append(DropoutLayer(dropout_rate))     
 
             # Create the activation layers to apply to the output of each linear layer
