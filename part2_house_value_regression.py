@@ -6,11 +6,12 @@ from sklearn.metrics import mean_squared_error, r2_score
 import part1_nn_lib as nn
 from sklearn.model_selection import GridSearchCV
 from sklearn.base import BaseEstimator
+import matplotlib.pyplot as plt
 
 
 class Regressor(BaseEstimator):
 
-    def __init__(self, x, nb_epoch = 100, neurons = [20,1], activations=["sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True, dropout_rate=0):
+    def __init__(self, x, nb_epoch = 100, neurons = [20,20,1], activations=["sigmoid", "sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True, dropout_rate=0):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -333,7 +334,10 @@ def RegressorHyperParameterSearch(x,y):
     #                       ** END OF YOUR CODE **
     #######################################################################
 
-def dummy_main():
+
+
+
+def overfitting_analysis():
     output_label = "median_house_value"
 
     # Use pandas to read CSV data as it contains various object types
@@ -342,13 +346,67 @@ def dummy_main():
     data = pd.read_csv("housing.csv") 
     data = data.sample(frac=1).reset_index(drop=True)
 
-
     # Splitting input and output
-    x = data.loc[:, data.columns != output_label]
+    x= data.loc[:, data.columns != output_label]
     y = data.loc[:, [output_label]]
-    
-    RegressorHyperParameterSearch(x, y)
 
+    split_idx = int(0.8 * len(x))
+    x_train = x[:split_idx]
+    y_train = y[:split_idx]
+    x_test = x[split_idx:]
+    y_test = y[split_idx:]
+
+    epochs = []
+    no_dropout_test_errors = []
+    no_dropout_eval_errors = []
+
+    dropout_test_errors = []
+    dropout_eval_errors = []
+
+    for epoch in range(100, 2001, 100):
+        print("Currently at epoch:", epoch)
+        epochs.append(epoch)
+
+        no_dropout_regressor = Regressor(x_train, nb_epoch=epoch, dropout_rate=0)
+        no_dropout_regressor.fit(x_train, y_train)
+        save_regressor(no_dropout_regressor)
+        ndr = load_regressor()
+        no_dropout_test_errors.append(ndr.score(x_test,y_test))
+        no_dropout_eval_errors.append(ndr.score(x_train,y_train))
+        
+        
+        dropout_regressor = Regressor(x_train, nb_epoch=epoch, dropout_rate=0.2)
+        dropout_regressor.fit(x_train, y_train)
+        save_regressor(dropout_regressor)
+        dr = load_regressor()
+        dropout_test_errors.append(dr.score(x_test,y_test))
+        dropout_eval_errors.append(dr.score(x_train,y_train))
+
+    return (epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
+
+
+def graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors):
+    plt.figure(figsize=(8,6))
+    plt.plot(epochs, dropout_eval_errors, label='Eval RMSE')
+    plt.plot(epochs, dropout_test_errors, label='Test RMSE')
+    plt.title("RMSE per epoch for eval")
+    plt.xlabel("Epochs")
+    plt.ylabel("RMSE Loss")
+    plt.legend()
+    file_name = "graphs/Eval"
+    plt.savefig(file_name)
+    plt.clf() # Clears the figure so the graphs don't overlap in the saved file
+
+    plt.figure(figsize=(8,6))
+    plt.plot(epochs, no_dropout_eval_errors, label='Eval RMSE')
+    plt.plot(epochs, no_dropout_test_errors, label='Test RMSE')
+    plt.title("RMSE per epoch for test")
+    plt.xlabel("Epochs")
+    plt.ylabel("RMSE Loss")
+    plt.legend()
+    file_name = "graphs/Test"
+    plt.savefig(file_name)
+    plt.clf() # Clears the figure so the graphs don't overlap in the saved file
 
 def example_main():
 
@@ -389,4 +447,13 @@ def example_main():
 
 
 if __name__ == "__main__":
-    dummy_main()
+    epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
+
+    # print("no_dropout_eval_errors", no_dropout_eval_errors)
+    # print("dropout_eval_errors",dropout_eval_errors)
+    
+    # print("no_dropout_test_errors", no_dropout_test_errors)
+    # print("dropout_test_errors", dropout_test_errors)
+    
+
+    graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
