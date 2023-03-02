@@ -11,9 +11,15 @@ import json
 
 class Regressor(BaseEstimator):
 
-    def __init__(self, x, nb_epoch = 100, neurons = [20,20,1], activations=["sigmoid", "sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True, dropout_rate=0):
-        # You can add any input parameters you need
-        # Remember to set them with a default value for LabTS tests
+    def __init__(self, x, 
+                nb_epoch = 100, 
+                neurons = [20,20,1], 
+                activations = ["sigmoid", "sigmoid", "identity"],
+                batch_size = 32, 
+                learning_rate = 0.01,
+                shuffle_flag = True,
+                dropout_rate = 0,
+                loss_fun = "mse"):
         """ 
         Initialise the model.
           
@@ -41,28 +47,21 @@ class Regressor(BaseEstimator):
         self.upperBound = 1.0
         self.lowerBound = 0.0
 
-        self.x = x
-        # Setting up necessary attributes
-        self.input_size = self.x.shape[1]+4
-        self.nb_epoch = nb_epoch 
-        self.neurons = neurons
-        self.activations = activations
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self.shuffle_flag= shuffle_flag
-        self.dropout_rate = dropout_rate
-        
+        # Preprocessing X
+        self.x = self._preprocessor(x)
+                
         # Initialize Neural Network
-        net = nn.MultiLayerNetwork(self.input_size, self.neurons, self.activations, dropout_rate=self.dropout_rate)
+        input_size = self.x.shape[1]
+        net = nn.MultiLayerNetwork(input_size, neurons, activations, dropout_rate)
 
         # Initialize Trainer
         self.network = nn.Trainer(
-            network=net,
-            batch_size=self.batch_size,
-            nb_epoch=self.nb_epoch,
-            learning_rate=self.learning_rate,
-            loss_fun="mse",
-            shuffle_flag=True,
+            network = net,
+            batch_size = batch_size,
+            nb_epoch = nb_epoch,
+            learning_rate = learning_rate,
+            loss_fun = loss_fun,
+            shuffle_flag = shuffle_flag,
         )
 
         #######################################################################
@@ -294,17 +293,27 @@ def RegressorHyperParameterSearch(x,y):
     #######################################################################
 
     # Values to test
-    nb_epoch = [50,100,500,1000,5000]
-    neurons = [[20,10,5,1],[30,30,15,1],[50,50,25,1]]
-    batch_size = [32,64,128]
-    learning_rate = [0.01,0.05]
-    activations = [["relu", "relu", "relu", "identity"], 
-                   ["sigmoid", "sigmoid", "sigmoid", "identity"],
-                   ["relu", "sigmoid", "relu", "identity"],
+    # nb_epoch = [50,100,500,1000,5000]
+    # neurons = [[20,10,5,1],[30,30,15,1],[50,50,25,1]]
+    # batch_size = [32,64,128]
+    # learning_rate = [0.01,0.05]
+    # activations = [["relu", "relu", "relu", "identity"], 
+    #                ["sigmoid", "sigmoid", "sigmoid", "identity"],
+    #                ["relu", "sigmoid", "relu", "identity"],
+    #                ["leakyrelu", "leakyrelu","leakyrelu"]
+    #                ]
+    # dropout_rate = [0.1, 0.2, 0.5]
+
+    nb_epoch = [50]
+    neurons = [[20,1]]
+    batch_size = [128]
+    learning_rate = [0.01]
+    activations = [
                    ["leakyrelu", "leakyrelu","leakyrelu"]
                    ]
-    dropout_rate = [0.1, 0.2, 0.5]
-    
+    dropout_rate = [0.1]
+
+
     parameters = {
         "nb_epoch" : nb_epoch,
         "neurons" : neurons,
