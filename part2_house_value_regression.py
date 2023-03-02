@@ -106,6 +106,11 @@ class Regressor(BaseEstimator):
 
         # PREPROCESSING Y
         if y is not None:
+            # Check if some Y values are missing, if so remove the whole line
+            drop_index = y[y['median_house_value'].isna()].index.tolist()
+            y = y.drop(index=drop_index)
+            x = x.drop(index=drop_index)
+
             # Calculate preprocessing values of Y, if not None
             y = (np.array(y)).astype(float)
             self.minValuesY = np.min(y, axis=0)
@@ -114,18 +119,6 @@ class Regressor(BaseEstimator):
                                    * (self.upperBound - self.lowerBound) 
                                    / (self.maxValuesY - self.minValuesY)
                                    )
-        
-        # if y is not None:
-        #     # Check if some Y values are missing, if so remove the whole line
-        #     # Get the index values of all the Y rows with empty values
-        #     drop_index = y[y.isna()].index.tolist()
-
-        #     # Drop them from Y
-        #     y = y.drop(drop_index, axis = 0)
-        #     # Drop them from X
-        #     x = x.drop(drop_index, axis = 0)
-
-# TO DO, DO NOT HARD CODE THE NAME OF THE COLUMNS BELOW
 
         # DEALING WITH CATEGORICAL VARIABLES
         binarised_ocean_proximity = pd.DataFrame(
@@ -140,7 +133,6 @@ class Regressor(BaseEstimator):
         x.reset_index(drop=True, inplace=True)
         x = pd.concat([x, binarised_ocean_proximity], axis=1) # adding the 5 dummy columns
 
-        #REPORT
         # REMOVING NA VALUES FROM X 
         # print("Mean of total bedrooms", sum(x['total_bedrooms'] == x['total_bedrooms'].mean()))
         #print(x.isna().sum()) 
@@ -195,7 +187,7 @@ class Regressor(BaseEstimator):
         #######################################################################
 
             
-    def predict(self, x):
+    def predict(self, x, y = None):
         """
         Output the value corresponding to an input x.
 
@@ -211,16 +203,16 @@ class Regressor(BaseEstimator):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        X, _ = self._preprocessor(x, training = False)
-        # print("\n X after preprocessing", X[-100:,-5:])
-        # print("Same as above, this time number of NA:", np.sum(np.isnan(X)))
+        X, _ = self._preprocessor(x, y, training = False)
 
-        norm_pred = self.network.network(X, True).squeeze()
-        # print("\n pre unnormalise: ", norm_pred)
+        normalised_pred = self.network.network(X, True).squeeze()
         
-        predictedValues = self.minValuesY + ((norm_pred - self.lowerBound) * (self.maxValuesY - self.minValuesY)) / (self.upperBound - self.lowerBound)
-        # print("\n Predicted Values once unnormalised", predictedValues)
-        return predictedValues
+        predicted_values = self.minValuesY + (((normalised_pred - self.lowerBound) 
+                            * (self.maxValuesY - self.minValuesY)) 
+                            / (self.upperBound - self.lowerBound)
+                            )
+
+        return predicted_values
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -243,10 +235,11 @@ class Regressor(BaseEstimator):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################    
-        y = (np.array(y)).astype(float).squeeze()
-        predictions = self.predict(x)
-        # print (y)
-        rmse = np.sqrt(mean_squared_error(y, predictions))
+        _, Y = self._preprocessor(x, y, training = False)
+        
+        predictions = self.predict(x, y)
+    
+        rmse = np.sqrt(mean_squared_error(Y, predictions))
 
 
         # print("\n|------------- MODEL PERFORMANCE -------------|")
@@ -320,7 +313,7 @@ def RegressorHyperParameterSearch(x,y):
     #                ]
     # dropout_rate = [0.1, 0.2, 0.5]
 
-    nb_epoch = [50]
+    nb_epoch = [50, 60]
     neurons = [[20,1]]
     batch_size = [128]
     learning_rate = [0.01]
@@ -347,7 +340,8 @@ def RegressorHyperParameterSearch(x,y):
         scoring="neg_root_mean_squared_error",
         verbose=4,
         return_train_score = True,
-        cv = 2
+        cv = 2,
+        n_jobs = 2
         )
     
     result = gs.fit(x,y)
