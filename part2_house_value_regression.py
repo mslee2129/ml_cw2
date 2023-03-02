@@ -7,10 +7,9 @@ import part1_nn_lib as nn
 from sklearn.model_selection import GridSearchCV
 from sklearn.base import BaseEstimator
 import matplotlib.pyplot as plt
-import json
+
 
 class Regressor(BaseEstimator):
-
     def __init__(self, x, 
                 nb_epoch = 100, 
                 neurons = [20,20,1], 
@@ -39,6 +38,18 @@ class Regressor(BaseEstimator):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
+        # Setting attributes
+        self.x = x
+        self.activations = activations
+        self.nb_epoch = nb_epoch
+        self.neurons = neurons 
+        self.activations = activations
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.shuffle_flag = shuffle_flag
+        self.dropout_rate = dropout_rate
+        self.loss_fun = loss_fun
+        
         # Preprocessing attributes
         self.minValuesX = []
         self.maxValuesX = []
@@ -47,21 +58,22 @@ class Regressor(BaseEstimator):
         self.upperBound = 1.0
         self.lowerBound = 0.0
 
-        # Preprocessing X
-        self.x = self._preprocessor(x)
-                
+        # Preprocessing data for dimensions
+        pre_x = x
+        pre_x, _= self._preprocessor(pre_x, training = True)
+        self.input_size = pre_x.shape[1]
+
         # Initialize Neural Network
-        input_size = self.x.shape[1]
-        net = nn.MultiLayerNetwork(input_size, neurons, activations, dropout_rate)
+        self.net = nn.MultiLayerNetwork(self.input_size, self.neurons, self.activations, self.dropout_rate)
 
         # Initialize Trainer
         self.network = nn.Trainer(
-            network = net,
-            batch_size = batch_size,
-            nb_epoch = nb_epoch,
-            learning_rate = learning_rate,
-            loss_fun = loss_fun,
-            shuffle_flag = shuffle_flag,
+            network = self.net,
+            batch_size = self.batch_size,
+            nb_epoch = self.nb_epoch,
+            learning_rate = self.learning_rate,
+            loss_fun = self.loss_fun,
+            shuffle_flag = self.shuffle_flag,
         )
 
         #######################################################################
@@ -81,7 +93,8 @@ class Regressor(BaseEstimator):
 
         Returns:
             - {torch.tensor} or {numpy.ndarray} -- Preprocessed input array of
-              size (batch_size, input_size). The input_size does not have to be the same as the input_size for x above.
+              size (batch_size, input_size). The input_size does not have to be 
+              the same as the input_size for x above.
             - {torch.tensor} or {numpy.ndarray} -- Preprocessed target array of
               size (batch_size, 1).
             
@@ -97,7 +110,10 @@ class Regressor(BaseEstimator):
             y = (np.array(y)).astype(float)
             self.minValuesY = np.min(y, axis=0)
             self.maxValuesY = np.max(y, axis=0)
-            y = self.lowerBound + ((y - self.minValuesY) * (self.upperBound - self.lowerBound) / (self.maxValuesY - self.minValuesY))
+            y = self.lowerBound + ((y - self.minValuesY)  
+                                   * (self.upperBound - self.lowerBound) 
+                                   / (self.maxValuesY - self.minValuesY)
+                                   )
         
         # if y is not None:
         #     # Check if some Y values are missing, if so remove the whole line
