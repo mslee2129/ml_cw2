@@ -110,9 +110,6 @@ class Regressor(BaseEstimator):
         #     # Drop them from X
         #     x = x.drop(drop_index, axis = 0)
 
-        # REPORT
-        # print(x.isna().sum()) 
-
 # TO DO, DO NOT HARD CODE THE NAME OF THE COLUMNS BELOW
 
         # DEALING WITH CATEGORICAL VARIABLES
@@ -128,8 +125,13 @@ class Regressor(BaseEstimator):
         x.reset_index(drop=True, inplace=True)
         x = pd.concat([x, binarised_ocean_proximity], axis=1) # adding the 5 dummy columns
 
-        # REMOVING NA VALUES FROM X
-        x = x.fillna(0)
+        #REPORT
+        # REMOVING NA VALUES FROM X 
+        # print("Mean of total bedrooms", sum(x['total_bedrooms'] == x['total_bedrooms'].mean()))
+        #print(x.isna().sum()) 
+        x = x.fillna(x.mean())
+        # print(x.isna().sum()) 
+        #print("Mean of total bedrooms", sum(x['total_bedrooms'] == x['total_bedrooms'].mean()))
 
         # IF TESTING, USE STORED PREPROCESSED ATTRIBUTES FOR X
         if not training:
@@ -447,7 +449,9 @@ def example_main():
 
 
 if __name__ == "__main__":
-    epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
+    example_main()
+
+    # epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
 
     # print("no_dropout_eval_errors", no_dropout_eval_errors)
     # print("dropout_eval_errors",dropout_eval_errors)
@@ -456,4 +460,4 @@ if __name__ == "__main__":
     # print("dropout_test_errors", dropout_test_errors)
     
 
-    graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
+    # graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
