@@ -11,7 +11,7 @@ import json
 
 class Regressor(BaseEstimator):
 
-    def __init__(self, x, nb_epoch = 100, neurons = [20,20,1], activations=["sigmoid", "sigmoid", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True, dropout_rate=0):
+    def __init__(self, x, nb_epoch = 500, neurons = [50,50,25,1], activations=["relu", "relu", "relu", "identity"], batch_size = 32, learning_rate=0.01, shuffle_flag=True, dropout_rate=0.3):
         # You can add any input parameters you need
         # Remember to set them with a default value for LabTS tests
         """ 
@@ -200,7 +200,7 @@ class Regressor(BaseEstimator):
         # print("\n X after preprocessing", X[-100:,-5:])
         # print("Same as above, this time number of NA:", np.sum(np.isnan(X)))
 
-        norm_pred = self.network.network(X, True).squeeze()
+        norm_pred = self.network.network(X).squeeze()
         # print("\n pre unnormalise: ", norm_pred)
         
         predictedValues = self.minValuesY + ((norm_pred - self.lowerBound) * (self.maxValuesY - self.minValuesY)) / (self.upperBound - self.lowerBound)
@@ -269,7 +269,7 @@ def load_regressor():
     # If you alter this, make sure it works in tandem with save_regressor
     with open('part2_model.pickle', 'rb') as target:
         trained_model = pickle.load(target)
-    print("\nLoaded model in part2_model.pickle\n")
+    # print("\nLoaded model in part2_model.pickle\n")
     return trained_model
 
 
@@ -304,7 +304,7 @@ def RegressorHyperParameterSearch(x,y):
                    ["leakyrelu", "leakyrelu","leakyrelu"]
                    ]
     dropout_rate = [0.1, 0.2, 0.5]
-    
+
     parameters = {
         "nb_epoch" : nb_epoch,
         "neurons" : neurons,
@@ -330,8 +330,8 @@ def RegressorHyperParameterSearch(x,y):
     df = pd.DataFrame(result.cv_results_)
     df.to_csv('gridResults.csv')
 
-    print("\nIt has score (on cross-validation):", result.best_score_)
-    print("\nIt has parameters :", result.best_params_)
+    # print("\nIt has score (on cross-validation):", result.best_score_)
+    # print("\nIt has parameters :", result.best_params_)
 
     return result.best_estimator_ #returning the best model
 
@@ -371,7 +371,7 @@ def overfitting_analysis():
     dropout_eval_errors = []
 
     for epoch in range(100, 2001, 100):
-        print("Currently at epoch:", epoch)
+        # print("Currently at epoch:", epoch)
         epochs.append(epoch)
 
         no_dropout_regressor = Regressor(x_train, nb_epoch=epoch, dropout_rate=0)
@@ -419,6 +419,36 @@ def graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_e
 #######################################################################
 #                       ** END EPOCH / Start MAIN **
 #######################################################################
+
+def dummy_main():
+    output_label = "median_house_value"
+
+    # Use pandas to read CSV data as it contains various object types
+    # Feel free to use another CSV reader tool
+    # But remember that LabTS tests take Pandas DataFrame as inputs
+    data = pd.read_csv("housing.csv") 
+    data = data.sample(frac=1).reset_index(drop=True)
+
+
+    # Splitting input and output
+    x= data.loc[:, data.columns != output_label]
+    y = data.loc[:, [output_label]]
+
+    split_idx = int(0.8 * len(x))
+    x_train = x[:split_idx]
+    y_train = y[:split_idx]
+    x_test = x[split_idx:]
+    y_test = y[split_idx:]
+
+    regressor = Regressor(x_train)
+    regressor.fit(x_train, y_train)
+    save_regressor(regressor)
+
+    reg = load_regressor()
+
+    # # Error
+    error = reg.score(x_test,y_test)
+    print("\nRegressor error: {}\n".format(error))
 
 def example_main():
 

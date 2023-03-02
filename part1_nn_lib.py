@@ -83,22 +83,12 @@ class CrossEntropyLossLayer(Layer):
         probs = self.softmax(inputs)
         self._cache_current = y_target, probs
 
-        # # Change made for Part 2
-        # epsilon = 1e-8
-        # probs = np.clip(probs, epsilon, 1 - epsilon)
-        # # End of change made for Part 2
-
         out = -1 / n_obs * np.sum(y_target * np.log(probs))
         return out
 
     def backward(self):
         y_target, probs = self._cache_current
         n_obs = len(y_target)
-
-        # # Change made for Part 2
-        # epsilon = 1e-8
-        # probs = np.clip(probs, epsilon, 1 - epsilon)
-        # # End of change made for Part 2
 
         return -1 / n_obs * (y_target - probs)
 
@@ -114,7 +104,7 @@ class SigmoidLayer(Layer):
         """
         self._cache_current = None
 
-    def forward(self, x): # x here is the output from a linear layer, so with Neural Network notation we think of this as Z which equals WX+B
+    def forward(self, x): 
         """ 
         Performs forward pass through the Sigmoid layer.
 
@@ -331,8 +321,6 @@ class LinearLayer(Layer):
         self._cache_current = None
         self._grad_W_current = None
         self._grad_b_current = None
-        self.dropout_rate = 0
-        self.dropout_mask_cache = None
 
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -354,24 +342,10 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        # print("\n\n LAY LAY LAY IT DOWN: LINEAR LAYER \n\n")
-        # print("Weight", self._W)
+        
         # Store x as it is needed for dLoss/dW
         self._cache_current = x 
-
-        # Batch x values such that we have a row per observation so x has shape (num observation, num neurons in previous layer)
-        # W has shape (num neurons in previous layer, num neurons in curr layer)
-        # to line up these values for matrix multiplication, we need to have 
-        # print("\n----------------- LINEAR LAYER -----------------\n")
-        # print("\n----------------- DATA -----------------\n")
-        # print(x)
-        # print("\n----------------- WEIGHTS -----------------\n")
-        # print(self._W)
-        # print("\n----------------- DATA NA COUNT -----------------\n")    
-        # print("\n DATA NA COUNT:\n",np.count_nonzero(np.isnan(x)))
-        # print("\n----------------- WEIGHT NA COUNT -----------------\n")  
-        # print("\n WEIGHTS IN LINEAR:\n",np.count_nonzero(np.isnan(self._W)))
-        # print("\n----------------- END LINEAR LAYER -----------------\n")  
+        # print("_cach_current at forward linear: ", self._cache_current) 
 
         return np.matmul(x, self._W) + self._b
 
@@ -379,7 +353,7 @@ class LinearLayer(Layer):
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-    def backward(self, grad_z, testing = False):
+    def backward(self, grad_z):
         """
         Given `grad_z`, the gradient of some scalar (e.g. loss) with respect to
         the output of this layer, performs back pass through the layer (i.e.
@@ -397,20 +371,9 @@ class LinearLayer(Layer):
         #                       ** START OF YOUR CODE **
         #######################################################################
 
-        # Apply this layer's dropout to upstream grad
-        if self.dropout_mask_cache is not None:
-            grad_z *= self.dropout_mask_cache / (1 - self.dropout_rate)
-        
         # dLoss/dW
+        # print("_cache_current at backward linear: ", self._cache_current)
         self._grad_W_current = np.matmul(self._cache_current.T, grad_z)
-        
-        # print("\n----------------- BACKPROPAGATION - GRAD W OF LINEAR -----------------\n")
-        # print("\n GRAD Z:\n",grad_z)
-        # print("\n GRAD Z NA:\n",np.count_nonzero(np.isnan(grad_z)))
-        # print("\n CACHED\n", self._cache_current.T)
-        # print("\n CACHED NA:\n",np.count_nonzero(np.isnan(self._cache_current)))
-        # print("\n GRAD W\n", self._grad_W_current)
-        # print("\n----------------- END GRAD W OF LINEAR -----------------\n")
         
         # dLoss/db
         self._grad_b_current = np.matmul(np.ones((len(grad_z),1)).T, grad_z)
@@ -432,25 +395,32 @@ class LinearLayer(Layer):
         #######################################################################
         #                       ** START OF YOUR CODE **
         #######################################################################
-        # print("\n----------------- LINEAR LAYER -----------------\n")
-        # print("\n----------------- UPDATING PARAMETERS -----------------\n")
-        # print("\n----------------- BEFORE UPDATE PARAMETERS - WEIGHT -----------------\n")
-        # print(self._W)
-        # print("\n----------------- BEFORE UPDATE PARAMETERS - GRAD W -----------------\n")
-        # print(self._grad_W_current)
-        # print("\n----------------- LEARNING RATE -----------------\n")
-        # print(learning_rate)
-        # print("\n----------------- AFTER UPDATE PARAMETERS -----------------\n")
+
         self._W -= learning_rate*(self._grad_W_current)
-        # print(self._W)
-
-
         self._b -= learning_rate*(self._grad_b_current)
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
 
+class DropoutLayer(Layer):
+
+    def __init__(self, dropout_rate):
+        self._dropout_rate = dropout_rate
+        self._mask = None
+    
+    def forward(self, x, testing=True): # when testing we do not perform dropout
+        # print("forward dropout before dropout: ", x)
+        if not testing:
+            # upscale as part of the inverted dropout technique
+            self._mask = np.random.binomial(1, 1 - self._dropout_rate, size=x.shape) / (1 - self._dropout_rate)
+            x *= self._mask
+        # print("forward dropout after dropout: ", x)
+        return x
+    
+    def backward(self, grad_z):
+        return grad_z * self._mask 
+            
 
 class MultiLayerNetwork(object):
     """
@@ -474,7 +444,7 @@ class MultiLayerNetwork(object):
         self.input_dim = input_dim
         self.neurons = neurons
         self.activations = activations
-        self.dropout_rate = dropout_rate
+        self._dropout_rate = dropout_rate
 
         #######################################################################
         #                       ** START OF YOUR CODE **
@@ -490,7 +460,10 @@ class MultiLayerNetwork(object):
                 # All other linear layers are created with num_neurons from previous and next
                 self._layers.append(LinearLayer(neurons[i-1], neurons[i]))
 
-            
+            # Add Dropout layer after each Linear Layer
+            if i < len(neurons)-1:
+                self._layers.append(DropoutLayer(dropout_rate))     
+
             # Create the activation layers to apply to the output of each linear layer
             if activations[i] == "relu":
                 self._layers.append(ReluLayer())
@@ -508,7 +481,7 @@ class MultiLayerNetwork(object):
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-    def forward(self, x, testing=False):
+    def forward(self, x, testing=True): # No dropout performed when testing is true
         """
         Performs forward pass through the network.
 
@@ -526,23 +499,18 @@ class MultiLayerNetwork(object):
         # Call the forward attribute of each, by giving the result of the previous layer into the next one
         # If we are not training, the dropout rate is automatically set to zero
         for layer in self._layers: 
-            x = layer.forward(x)
-            if isinstance(layer, LinearLayer) and not testing:
-                mask = np.random.binomial(1, 1 - self.dropout_rate, size=x.shape)
-                x *= mask / (1 - self.dropout_rate) # upscale as part of the inverted dropout technique
-                layer.dropout_mask_cache = mask # save mask to cache of layer for use in backpropagation
-                layer.dropout_rate = self.dropout_rate
+            if isinstance(layer, DropoutLayer):
+                x = layer.forward(x, testing)
             else:
-                layer.dropout_mask_cache = None
-                layer.dropout_rate = None
+                x = layer.forward(x)
         return x
 
         #######################################################################
         #                       ** END OF YOUR CODE **
         #######################################################################
 
-    def __call__(self, x, testing=False):
-        return self.forward(x, testing)
+    def __call__(self, x):
+        return self.forward(x)
 
     def backward(self, grad_z):
         """
@@ -703,7 +671,7 @@ class Trainer(object):
         num_minibatch = np.ceil(np.shape(input_dataset)[0] / self.batch_size)
     
         for epoch in range(self.nb_epoch):
-            # print("\n\nHEY JASON, I AM EPOCH NUMBER:", epoch,"\n\n")
+            
             if(self.shuffle_flag): # Shuffle if shuffle_flag true
                 input_dataset, target_dataset = self.shuffle(input_dataset, target_dataset)
 
@@ -748,7 +716,7 @@ class Trainer(object):
         #                       ** START OF YOUR CODE **
         #######################################################################
         # Forward Pass
-        output = self.network.forward(input_dataset)
+        output = self.network.forward(input_dataset, testing=False)
         
         
         loss = self._loss_layer.forward(output, target_dataset)
@@ -842,8 +810,8 @@ class Preprocessor(object):
 
 def example_main():
     input_dim = 4
-    neurons = [16, 3]
-    activations = ["relu", "identity"]
+    neurons = [16,16,3]
+    activations = ["relu","relu", "identity"]
     net = MultiLayerNetwork(input_dim, neurons, activations)
 
     dat = np.loadtxt("iris.dat")
