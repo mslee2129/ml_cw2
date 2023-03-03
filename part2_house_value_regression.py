@@ -369,23 +369,19 @@ def overfitting_analysis():
     dropout_eval_errors = []
 
     for epoch in range(100, 2001, 100):
-        # print("Currently at epoch:", epoch)
+        print("Currently at epoch:", epoch)
         epochs.append(epoch)
 
         no_dropout_regressor = Regressor(x_train, nb_epoch=epoch, dropout_rate=0)
         no_dropout_regressor.fit(x_train, y_train)
-        save_regressor(no_dropout_regressor)
-        ndr = load_regressor()
-        no_dropout_test_errors.append(ndr.score(x_test,y_test))
-        no_dropout_eval_errors.append(ndr.score(x_train,y_train))
+        no_dropout_test_errors.append(no_dropout_regressor.score(x_test,y_test))
+        no_dropout_eval_errors.append(no_dropout_regressor.score(x_train,y_train))
         
         
         dropout_regressor = Regressor(x_train, nb_epoch=epoch, dropout_rate=0.2)
         dropout_regressor.fit(x_train, y_train)
-        save_regressor(dropout_regressor)
-        dr = load_regressor()
-        dropout_test_errors.append(dr.score(x_test,y_test))
-        dropout_eval_errors.append(dr.score(x_train,y_train))
+        dropout_test_errors.append(dropout_regressor.score(x_test,y_test))
+        dropout_eval_errors.append(dropout_regressor.score(x_train,y_train))
 
     return (epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
 
@@ -544,7 +540,7 @@ def graph_batch_size():
             if batch == 32: # i only want to do this once
                 epochs.append(epoch)
 
-            reg = Regressor(x=x, nb_epoch=epoch, batch_size=batch_size)
+            reg = Regressor(x=x, nb_epoch=epoch, batch_size=batch)
 
             reg.fit(x_train, y_train)
             results[-1].append(reg.score(x_test,y_test))
@@ -581,7 +577,7 @@ def graph_activation_function():
 
     epochs = []
     results = []
-    activations = [["relu"],["sigmoid"]]
+    activations = [["relu"],["sigmoid"],["leakyrelu"]]
     for activation in activations:
         results.append([])
         print("Activation:", activation)
@@ -697,18 +693,18 @@ def example_main():
 if __name__ == "__main__":
     # Computer 1
 
-    # epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
-    # graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
+    #epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
+    #graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
 
-    # graph_dropout_values()
+    #graph_dropout_values()
 
     # # Computer 2
     # graph_learning_rate()
-    # graph_batch_size()
+    graph_batch_size()
 
     # # Computer 3
-    # graph_layers()
-    # graph_activation_function()
+    #graph_layers()
+    #graph_activation_function()
 
     # Computer 4
-    # example_main()
+    #example_main()
