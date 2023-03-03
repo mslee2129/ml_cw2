@@ -12,10 +12,10 @@ class Regressor(BaseEstimator):
     
     def __init__(self, 
                  x, 
-                 nb_epoch = 100, 
-                 neurons = [20,20,1],
-                 activations = ["relu", "relu", "identity"],
-                 batch_size = 32, 
+                 nb_epoch = 50,
+                 neurons = [30,30,15,1],
+                 activations = ["sigmoid", "sigmoid", "sigmoid","identity"],
+                 batch_size = 64, 
                  learning_rate = 0.01, 
                  shuffle_flag = True, 
                  dropout_rate = 0, 
@@ -292,16 +292,15 @@ def RegressorHyperParameterSearch(x,y):
     #######################################################################
 
     # Values to test
-    nb_epoch = [50,100,500,1000,5000]
-    neurons = [[20,10,5,1],[30,30,15,1],[50,50,25,1]]
+    nb_epoch = [25,50,75,100,500,1000]
+    neurons = [[20,10,1],[30,15,1],[50,25,1]]
     batch_size = [32,64,128]
-    learning_rate = [0.01,0.05]
-    activations = [["relu", "relu", "relu", "identity"], 
-                   ["sigmoid", "sigmoid", "sigmoid", "identity"],
-                   ["relu", "sigmoid", "relu", "identity"],
-                   ["leakyrelu", "leakyrelu","leakyrelu"]
+    learning_rate = [0.01, 0.05]
+    activations = [["relu", "relu", "identity"], 
+                   ["relu", "leakyrelu", "identity"],
+                   ["leakyrelu", "leakyrelu"]
                    ]
-    dropout_rate = [0, 0.1, 0.3, 0.5]
+    dropout_rate = [0, 0.05, 0.1, 0.3]
 
     parameters = {
         "nb_epoch" : nb_epoch,
@@ -368,7 +367,7 @@ def overfitting_analysis():
     dropout_test_errors = []
     dropout_eval_errors = []
 
-    for epoch in range(100, 2001, 100):
+    for epoch in range(250, 5001, 250):
         print("Currently at epoch:", epoch)
         epochs.append(epoch)
 
@@ -431,7 +430,7 @@ def graph_layers():
         
         print("Layer:", num_layers + 1)
 
-        for epoch in range(100, 1001, 100):
+        for epoch in range(50, 1001, 50):
             print("-- Epoch:", epoch)
             if num_layers == 1: # i only want to do this once
                 epochs.append(epoch)
@@ -660,6 +659,34 @@ def graph_dropout_values():
 #######################################################################
 #                       **  MAIN **
 #######################################################################
+def dummy_main():
+
+    output_label = "median_house_value"
+
+    # Use pandas to read CSV data as it contains various object types
+    # Feel free to use another CSV reader tool
+    # But remember that LabTS tests take Pandas DataFrame as inputs
+    data = pd.read_csv("housing.csv") 
+    data = data.sample(frac=1).reset_index(drop=True)
+
+
+    # Splitting input and output
+    x= data.loc[:, data.columns != output_label]
+    y = data.loc[:, [output_label]]
+
+    split_idx = int(0.8 * len(x))
+    x_train = x[:split_idx]
+    y_train = y[:split_idx]
+    x_test = x[split_idx:]
+    y_test = y[split_idx:]
+    
+    regressor = Regressor(x_train)
+    regressor.fit(x_train, y_train)
+
+    # Error
+    error = regressor.score(x_test,y_test)
+    print("\nRegressor error: {}\n".format(error))
+
 
 def example_main():
 
@@ -688,23 +715,27 @@ def example_main():
 
     # Error
     error = regressor.score(x_test,y_test)
-    print("\nRegressor error: {}\n".format(error))
+    print("\nRegressor error (on test): {}\n".format(error))
 
 if __name__ == "__main__":
-    # Computer 1
+    # Quick tests
+    # dummy_main()
 
-    #epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
-    #graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
+    # Computer 4
+    example_main()
+
+    # Computer 1
+    epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
+    graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
 
     #graph_dropout_values()
 
     # # Computer 2
     # graph_learning_rate()
-    graph_batch_size()
+    # graph_batch_size()
 
     # # Computer 3
-    #graph_layers()
+    graph_layers()
     #graph_activation_function()
 
-    # Computer 4
-    #example_main()
+    
