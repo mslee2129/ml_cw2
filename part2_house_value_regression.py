@@ -13,12 +13,12 @@ class Regressor(BaseEstimator):
     def __init__(self, 
                  x, 
                  nb_epoch = 50,
-                 neurons = [30,30,15,1],
-                 activations = ["sigmoid", "sigmoid", "sigmoid","identity"],
-                 batch_size = 64, 
+                 neurons = [20,10,1],
+                 activations = ["relu", "leaky", "identity"],
+                 batch_size = 128, 
                  learning_rate = 0.01, 
                  shuffle_flag = True, 
-                 dropout_rate = 0, 
+                 dropout_rate = 0.05, 
                  loss_fun = "mse", 
                  upperBound = 1.0, 
                  lowerBound = 0.0):
@@ -292,15 +292,15 @@ def RegressorHyperParameterSearch(x,y):
     #######################################################################
 
     # Values to test
-    nb_epoch = [25,50,75,100,500,1000]
-    neurons = [[20,10,1],[30,15,1],[50,25,1]]
+    nb_epoch = [10,25,50,75,100]
+    neurons = [[20,10,1],[30,15,1],[10,5,1]]
     batch_size = [32,64,128]
-    learning_rate = [0.01, 0.05]
+    learning_rate = [0.01]
     activations = [["relu", "relu", "identity"], 
                    ["relu", "leakyrelu", "identity"],
-                   ["leakyrelu", "leakyrelu"]
+                   ["leakyrelu", "leakyrelu", "identity"]
                    ]
-    dropout_rate = [0, 0.05, 0.1, 0.3]
+    dropout_rate = [0, 0.025, 0.05, 0.075, 0.1]
 
     parameters = {
         "nb_epoch" : nb_epoch,
@@ -725,8 +725,8 @@ if __name__ == "__main__":
     example_main()
 
     # Computer 1
-    epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
-    graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
+    # epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
+    # graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
 
     #graph_dropout_values()
 
@@ -735,7 +735,7 @@ if __name__ == "__main__":
     # graph_batch_size()
 
     # # Computer 3
-    graph_layers()
+    # graph_layers()
     #graph_activation_function()
 
     
