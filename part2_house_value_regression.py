@@ -231,20 +231,6 @@ class Regressor(BaseEstimator):
 
         rmse = np.sqrt(mean_squared_error(y, predictions))
 
-
-        # print("\n|------------- MODEL PERFORMANCE -------------|")
-        # print("|  root_mean_squared_error                 ")
-        # print("|  ",rmse)
-        # print("|  Average Value of Predictions   ")
-        # print("|  ",np.average(predictions))
-        # print("| REAL average  ")
-        # print("|  ",np.average(y))
-        # print("|  Max - Min of Predictions  ")
-        # print("|  Max : ",np.max(predictions),"  Min: ", np.min(predictions))
-        # print("|  Max - Min of REAL  ")
-        # print("|  Max : ",np.max(y),"  Min: ", np.min(y))
-    
-        # print("|---------------------------------------------|\n")
         return rmse
         #######################################################################
         #                       ** END OF YOUR CODE **
@@ -267,7 +253,6 @@ def load_regressor():
     # If you alter this, make sure it works in tandem with save_regressor
     with open('part2_model.pickle', 'rb') as target:
         trained_model = pickle.load(target)
-    # print("\nLoaded model in part2_model.pickle\n")
     return trained_model
 
 
@@ -659,35 +644,6 @@ def graph_dropout_values():
 #######################################################################
 #                       **  MAIN **
 #######################################################################
-def dummy_main():
-
-    output_label = "median_house_value"
-
-    # Use pandas to read CSV data as it contains various object types
-    # Feel free to use another CSV reader tool
-    # But remember that LabTS tests take Pandas DataFrame as inputs
-    data = pd.read_csv("housing.csv") 
-    data = data.sample(frac=1).reset_index(drop=True)
-
-
-    # Splitting input and output
-    x= data.loc[:, data.columns != output_label]
-    y = data.loc[:, [output_label]]
-
-    split_idx = int(0.8 * len(x))
-    x_train = x[:split_idx]
-    y_train = y[:split_idx]
-    x_test = x[split_idx:]
-    y_test = y[split_idx:]
-    
-    regressor = Regressor(x_train)
-    regressor.fit(x_train, y_train)
-
-    # Error
-    error = regressor.score(x_test,y_test)
-    print("\nRegressor error: {}\n".format(error))
-
-
 def example_main():
 
     output_label = "median_house_value"

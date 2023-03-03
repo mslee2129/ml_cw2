@@ -371,7 +371,6 @@ class LinearLayer(Layer):
         #######################################################################
 
         # dLoss/dW
-        # print("_cache_current at backward linear: ", self._cache_current)
         self._grad_W_current = np.matmul(self._cache_current.T, grad_z)
         
         # dLoss/db
@@ -679,7 +678,6 @@ class Trainer(object):
 
                 # Forward Pass & Calculate Loss
                 loss = self.eval_loss(input_minibatch, target_minibatch)
-                #print(loss)
 
                 # Backpropagation
                 grad_z = self._loss_layer.backward()
