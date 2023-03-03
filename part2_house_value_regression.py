@@ -12,13 +12,13 @@ class Regressor(BaseEstimator):
     
     def __init__(self, 
                  x, 
-                 nb_epoch = 50,
+                 nb_epoch = 25,
                  neurons = [20,10,1],
-                 activations = ["relu", "leaky", "identity"],
-                 batch_size = 128, 
+                 activations = ["leakyrelu", "leakyrelu", "identity"],
+                 batch_size = 32, 
                  learning_rate = 0.01, 
                  shuffle_flag = True, 
-                 dropout_rate = 0.05, 
+                 dropout_rate = 0.075, 
                  loss_fun = "mse", 
                  upperBound = 1.0, 
                  lowerBound = 0.0):
@@ -36,6 +36,14 @@ class Regressor(BaseEstimator):
                 number of linear layers.
             - activations {list} -- List of the activation functions to apply 
                 to the output of each linear layer.
+            - batch_size {int} -- training batch size
+            - learning_rate {float} -- SGD learning rate to be used in training
+            - shuffle_flag {bool} -- If True, training data is shuffled before
+                training.
+            - loss_fun {str} -- Loss function to be used. Possible values: mse,
+                cross_entropy.
+            - upperBound {float or int} -- upperBound for the normalisation
+            - lowerBound {float or int}-- lowerBound for the normalisation 
 
         """
 
@@ -98,7 +106,8 @@ class Regressor(BaseEstimator):
 
         Returns:
             - {torch.tensor} or {numpy.ndarray} -- Preprocessed input array of
-              size (batch_size, input_size). The input_size does not have to be the same as the input_size for x above.
+              size (batch_size, input_size). The input_size does not have to be 
+              the same as the input_size for x above.
             - {torch.tensor} or {numpy.ndarray} -- Preprocessed target array of
               size (batch_size, 1).
             
@@ -119,27 +128,32 @@ class Regressor(BaseEstimator):
             y = (np.array(y)).astype(float)
             self.minValuesY = np.min(y, axis=0)
             self.maxValuesY = np.max(y, axis=0)
-            y = self.lowerBound + ((y - self.minValuesY) * (self.upperBound - self.lowerBound) / (self.maxValuesY - self.minValuesY))
+            y = self.lowerBound + ((y - self.minValuesY) * 
+                                   (self.upperBound - self.lowerBound) /
+                                   (self.maxValuesY - self.minValuesY))
         
         # DEALING WITH CATEGORICAL VARIABLES
         binarised_ocean_proximity = pd.DataFrame(
             preprocessing.label_binarize(
                 x.ocean_proximity, 
                 classes=['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN'],  # keeping the order of the columns constant
-            ),
+            ), 
             columns= ['<1H OCEAN', 'INLAND', 'ISLAND', 'NEAR BAY', 'NEAR OCEAN'] # adding column names
         ) 
         
-        x = x.drop(labels='ocean_proximity', axis=1) #deleting categorical column before adding the new one
+        #deleting categorical column before adding the new ones
+        x = x.drop(labels='ocean_proximity', axis=1) 
         x.reset_index(drop=True, inplace=True)
-        x = pd.concat([x, binarised_ocean_proximity], axis=1) # adding the 5 dummy columns
+        x = pd.concat([x, binarised_ocean_proximity], axis=1)
 
         x = x.fillna(x.mean())
 
         # IF TESTING, USE STORED PREPROCESSED ATTRIBUTES FOR X
         if not training:
             x = (np.array(x)).astype(float)
-            x[:,:-5] = self.lowerBound + ((x[:,:-5] - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
+            x[:,:-5] = self.lowerBound + ((x[:,:-5] - self.minValuesX) * 
+                                            (self.upperBound - self.lowerBound) / 
+                                            (self.maxValuesX - self.minValuesX))
 
             return (x, y)
 
@@ -147,7 +161,9 @@ class Regressor(BaseEstimator):
         x = (np.array(x)).astype(float)
         self.minValuesX = np.min(x[:,:-5], axis=0)
         self.maxValuesX = np.max(x[:,:-5], axis=0)
-        x[:,:-5] = self.lowerBound + ((x[:,:-5] - self.minValuesX) * (self.upperBound - self.lowerBound) / (self.maxValuesX - self.minValuesX))
+        x[:,:-5] = self.lowerBound + ((x[:,:-5] - self.minValuesX) * 
+                                      (self.upperBound - self.lowerBound) / 
+                                      (self.maxValuesX - self.minValuesX))
 
         return (x, y)
 
@@ -201,7 +217,9 @@ class Regressor(BaseEstimator):
         X, _ = self._preprocessor(x, training = False)
 
         norm_pred = self.network.network(X).squeeze()
-        predictedValues = self.minValuesY + ((norm_pred - self.lowerBound) * (self.maxValuesY - self.minValuesY)) / (self.upperBound - self.lowerBound)
+        predictedValues = self.minValuesY + (((norm_pred - self.lowerBound) * 
+                                             (self.maxValuesY - self.minValuesY)) /
+                                            (self.upperBound - self.lowerBound))
 
         return predictedValues
 
@@ -240,7 +258,6 @@ def save_regressor(trained_model):
     """ 
     Utility function to save the trained regressor model in part2_model.pickle.
     """
-    # If you alter this, make sure it works in tandem with load_regressor
     with open('part2_model.pickle', 'wb') as target:
         pickle.dump(trained_model, target)
     print("\nSaved model in part2_model.pickle\n")
@@ -250,11 +267,9 @@ def load_regressor():
     """ 
     Utility function to load the trained regressor model in part2_model.pickle.
     """
-    # If you alter this, make sure it works in tandem with save_regressor
     with open('part2_model.pickle', 'rb') as target:
         trained_model = pickle.load(target)
     return trained_model
-
 
 
 def RegressorHyperParameterSearch(x,y): 
@@ -324,52 +339,52 @@ def RegressorHyperParameterSearch(x,y):
 #######################################################################
 #                       * IMPACT OF LAYERS GRAPH *
 #######################################################################
-def graph_layers():
-    output_label = "median_house_value"
-    data = pd.read_csv("housing.csv") 
-    data = data.sample(frac=1).reset_index(drop=True)
-    x= data.loc[:, data.columns != output_label]
-    y = data.loc[:, [output_label]]
-    split_idx = int(0.8 * len(x))
-    x_train = x[:split_idx]
-    y_train = y[:split_idx]
-    x_test = x[split_idx:]
-    y_test = y[split_idx:]
+# def graph_layers():
+#     output_label = "median_house_value"
+#     data = pd.read_csv("housing.csv") 
+#     data = data.sample(frac=1).reset_index(drop=True)
+#     x= data.loc[:, data.columns != output_label]
+#     y = data.loc[:, [output_label]]
+#     split_idx = int(0.8 * len(x))
+#     x_train = x[:split_idx]
+#     y_train = y[:split_idx]
+#     x_test = x[split_idx:]
+#     y_test = y[split_idx:]
 
-    epochs = []
-    results = []
-    for num_layers in range(1, 11, 2):
-        results.append([])
+#     epochs = []
+#     results = []
+#     for num_layers in range(1, 11, 2):
+#         results.append([])
         
-        print("Layer:", num_layers + 1)
+#         print("Layer:", num_layers + 1)
 
-        for epoch in range(50, 1001, 50):
-            print("-- Epoch:", epoch)
-            if num_layers == 1: # i only want to do this once
-                epochs.append(epoch)
+#         for epoch in range(50, 1001, 50):
+#             print("-- Epoch:", epoch)
+#             if num_layers == 1: # i only want to do this once
+#                 epochs.append(epoch)
             
-            in_neurons = ([20] * num_layers)
-            in_neurons.append(1)
-            in_activations = (["relu"] * num_layers)
-            in_activations.append("identity")
+#             in_neurons = ([20] * num_layers)
+#             in_neurons.append(1)
+#             in_activations = (["relu"] * num_layers)
+#             in_activations.append("identity")
 
-            reg = Regressor(x=x, nb_epoch=epoch, neurons=in_neurons, activations=in_activations)
+#             reg = Regressor(x=x, nb_epoch=epoch, neurons=in_neurons, activations=in_activations)
 
-            reg.fit(x_train, y_train)
-            results[-1].append(reg.score(x_test,y_test))
+#             reg.fit(x_train, y_train)
+#             results[-1].append(reg.score(x_test,y_test))
 
 
-    plt.figure(figsize=(8,6))
-    for index in range(len(results)):
-        plt.plot(epochs, results[index], label=('Number of hidden layers: '+str(index + 1)))
+#     plt.figure(figsize=(8,6))
+#     for index in range(len(results)):
+#         plt.plot(epochs, results[index], label=('Number of hidden layers: '+str(index + 1)))
 
-    plt.title("RMSE per epoch for a different number of layers")
-    plt.xlabel("Epochs")
-    plt.ylabel("RMSE")
-    plt.legend()
-    file_name = "graphs/Layers"
-    plt.savefig(file_name)
-    plt.clf() # Clears the figure so the graphs don't overlap in the saved file
+#     plt.title("RMSE per epoch for a different number of layers")
+#     plt.xlabel("Epochs")
+#     plt.ylabel("RMSE")
+#     plt.legend()
+#     file_name = "graphs/Layers"
+#     plt.savefig(file_name)
+#     plt.clf() # Clears the figure so the graphs don't overlap in the saved file
 
 
 #######################################################################
@@ -526,48 +541,48 @@ def graph_layers():
 #                       * IMPACT OF Activation Function *
 #######################################################################
 
-def graph_dropout_values():
-    output_label = "median_house_value"
-    data = pd.read_csv("housing.csv") 
-    data = data.sample(frac=1).reset_index(drop=True)
-    x= data.loc[:, data.columns != output_label]
-    y = data.loc[:, [output_label]]
-    split_idx = int(0.8 * len(x))
-    x_train = x[:split_idx]
-    y_train = y[:split_idx]
-    x_test = x[split_idx:]
-    y_test = y[split_idx:]
+# def graph_dropout_values():
+#     output_label = "median_house_value"
+#     data = pd.read_csv("housing.csv") 
+#     data = data.sample(frac=1).reset_index(drop=True)
+#     x= data.loc[:, data.columns != output_label]
+#     y = data.loc[:, [output_label]]
+#     split_idx = int(0.8 * len(x))
+#     x_train = x[:split_idx]
+#     y_train = y[:split_idx]
+#     x_test = x[split_idx:]
+#     y_test = y[split_idx:]
 
-    epochs = []
-    results = []
-    values = [0, 0.05, 0.1, 0.3, 0.5]
+#     epochs = []
+#     results = []
+#     values = [0, 0.05, 0.1, 0.3, 0.5]
 
-    for dropout_value in values:
-        results.append([])
-        print("Dropout Value:", dropout_value)
+#     for dropout_value in values:
+#         results.append([])
+#         print("Dropout Value:", dropout_value)
 
-        for epoch in range(50, 1001, 50):
-            print("-- Epoch:", epoch)
-            if dropout_value == 0: # i only want to do this once
-                epochs.append(epoch)
+#         for epoch in range(50, 1001, 50):
+#             print("-- Epoch:", epoch)
+#             if dropout_value == 0: # i only want to do this once
+#                 epochs.append(epoch)
 
-            reg = Regressor(x=x, dropout_rate = dropout_value)
+#             reg = Regressor(x=x, dropout_rate = dropout_value)
 
-            reg.fit(x_train, y_train)
-            results[-1].append(reg.score(x_test,y_test))
+#             reg.fit(x_train, y_train)
+#             results[-1].append(reg.score(x_test,y_test))
 
 
-    plt.figure(figsize=(8,6))
-    for index in range(len(results)):
-        plt.plot(epochs, results[index], label=('Dropout Value' + str(values[index])))
+#     plt.figure(figsize=(8,6))
+#     for index in range(len(results)):
+#         plt.plot(epochs, results[index], label=('Dropout Value = ' + str(values[index])))
 
-    plt.title("RMSE per epoch for different dropout values")
-    plt.xlabel("Epochs")
-    plt.ylabel("RMSE")
-    plt.legend()
-    file_name = "graphs/DropoutValues"
-    plt.savefig(file_name)
-    plt.clf() # Clears the figure so the graphs don't overlap in the saved file
+#     plt.title("RMSE per epoch for different dropout values")
+#     plt.xlabel("Epochs")
+#     plt.ylabel("RMSE")
+#     plt.legend()
+#     file_name = "graphs/DropoutValues"
+#     plt.savefig(file_name)
+#     plt.clf() # Clears the figure so the graphs don't overlap in the saved file
 
 #######################################################################
 #                       **  MAIN **
@@ -593,33 +608,32 @@ def example_main():
     x_test = x[split_idx:]
     y_test = y[split_idx:]
     
-    save_regressor(RegressorHyperParameterSearch(x_train, y_train))
-
-    regressor = load_regressor()
+    regressor = Regressor(x_train)
+    regressor.fit(x_train, y_train)
+    # save_regressor(RegressorHyperParameterSearch(x_train, y_train))
+    # regressor = load_regressor()
 
     # Error
     error = regressor.score(x_test,y_test)
     print("\nRegressor error (on test): {}\n".format(error))
 
 if __name__ == "__main__":
-    # Quick tests
-    # dummy_main()
-
     # Computer 4
-    # example_main()
+    example_main()
 
     # Computer 1
     # epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors = overfitting_analysis()
-    # graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, dropout_test_errors, no_dropout_test_errors)
+    # graph_it(epochs, dropout_eval_errors, no_dropout_eval_errors, 
+    #           dropout_test_errors, no_dropout_test_errors)
 
-    graph_dropout_values()
+    # graph_dropout_values()
 
     # # Computer 2
     # graph_learning_rate()
     # graph_batch_size()
 
     # # Computer 3
-    graph_layers()
+    # graph_layers()
     #graph_activation_function()
 
     

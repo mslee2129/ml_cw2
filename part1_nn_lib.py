@@ -217,12 +217,16 @@ class LeakyReluLayer(Layer):
     LeakyReluLayer: Applies LeakyRelu function elementwise.
     """
 
-    def __init__(self):
+    def __init__(self, slope = 0.1):
         """
         Constructor of the LeakyRelu layer.
+
+        Argguments:
+            slope {float} -- Amount of information negative values are allowed
+            to contribute to the model. Usually in the range 0.01 to 0.1
         """
         self._cache_current = None
-        self.slope = 0.1
+        self.slope = slope
 
     def forward(self, x):
         """ 
